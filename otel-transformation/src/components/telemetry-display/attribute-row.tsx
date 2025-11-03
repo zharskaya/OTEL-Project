@@ -1,0 +1,624 @@
+'use client';
+
+import React, { useState, useRef } from 'react';
+import { Trash2, Undo2, GripVertical, SquareTerminal } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { DisplayAttribute, ValueType } from '@/types/telemetry-types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useTransformationActions, useTransformations } from '@/lib/state/hooks';
+import { TransformationType, TransformationStatus } from '@/types/transformation-types';
+import { SyntaxHighlighter } from './syntax-highlighter';
+import { useTextSelection } from '@/lib/hooks/use-text-selection';
+import { MaskValueSelector } from '@/components/transformations/mask-value-selector';
+import { RenameKeyForm } from '@/components/transformations/rename-key-form';
+
+interface AttributeRowProps {
+  attribute: DisplayAttribute;
+  isDraggable?: boolean;
+  showDropIndicator?: boolean;
+  onRequestSubstring?: (params: {
+    sourceKey: string;
+    sourcePath: string;
+    sectionId: string;
+    substringStart: number;
+    substringEnd: number | 'end';
+  }) => void;
+}
+
+export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, onRequestSubstring }: AttributeRowProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isValueHovered, setIsValueHovered] = useState(false);
+  const [showMaskSelector, setShowMaskSelector] = useState(false);
+  const [selectorPosition, setSelectorPosition] = useState({ x: 0, y: 0 });
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isEditingOTTL, setIsEditingOTTL] = useState(false);
+  const [ottlStatement, setOttlStatement] = useState('');
+  const valueRef = useRef<HTMLSpanElement>(null);
+  const ottlInputRef = useRef<HTMLInputElement>(null);
+  const { selection, clearSelection } = useTextSelection(valueRef);
+  const { addTransformation, removeTransformation, updateTransformation } = useTransformationActions();
+  const transformations = useTransformations();
+
+  // Use sortable hook for draggable rows
+  const {
+    attributes: sortableAttributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: attribute.id,
+    disabled: !isDraggable,
+  });
+
+  // Check if this attribute has a delete transformation
+  const deleteTransformation = transformations.find(
+    (t) =>
+      t.type === TransformationType.DELETE &&
+      (t.params as any).attributeKey === attribute.key &&
+      (t.params as any).attributePath === attribute.path
+  );
+
+  // Check if this attribute has a mask transformation
+  const maskTransformation = transformations.find(
+    (t) =>
+      t.type === TransformationType.MASK &&
+      (t.params as any).attributeKey === attribute.key &&
+      (t.params as any).attributePath === attribute.path
+  );
+
+  // Check if this attribute has a rename transformation
+  const renameTransformation = transformations.find(
+    (t) =>
+      t.type === TransformationType.RENAME_KEY &&
+      (t.params as any).oldKey === attribute.key &&
+      (t.params as any).attributePath === attribute.path
+  );
+
+  const isDeleted = !!deleteTransformation;
+  const isMasked = !!maskTransformation;
+  const isRenamed = !!renameTransformation;
+  const isAdded = attribute.modifications.some(m => 
+    m.type === 'add-static' || m.type === 'add-substring' || m.type === 'raw-ottl'
+  );
+  
+  // Find the add transformation record if this is an added attribute
+  const addTransformationRecord = isAdded ? 
+    transformations.find(t => 
+      (t.type === TransformationType.ADD_STATIC || 
+       t.type === TransformationType.ADD_SUBSTRING ||
+       t.type === TransformationType.RAW_OTTL) &&
+      attribute.modifications.some(m => m.transformationId === t.id)
+    ) : null;
+
+  // Show mask selector when text is selected
+  React.useEffect(() => {
+    if (selection && !isDeleted && !isMasked && !isRenamed) {
+      // Only set position and show selector if not already showing
+      if (!showMaskSelector) {
+        const range = window.getSelection()?.getRangeAt(0);
+        if (range) {
+          const rect = range.getBoundingClientRect();
+          setSelectorPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top,
+          });
+        }
+        // Set show flag in a separate effect to avoid re-triggering
+        setShowMaskSelector(true);
+      }
+    } else {
+      setShowMaskSelector(false);
+    }
+  }, [selection, isDeleted, isMasked, isRenamed, showMaskSelector]);
+
+  const handleDelete = () => {
+    addTransformation({
+      id: `t-${Date.now()}`,
+      type: TransformationType.DELETE,
+      order: 0,
+      sectionId: attribute.sectionId,
+      createdAt: new Date(),
+      status: TransformationStatus.ACTIVE,
+      params: {
+        type: TransformationType.DELETE,
+        attributePath: attribute.path,
+        attributeKey: attribute.key,
+      },
+    });
+  };
+
+  const handleUndo = () => {
+    if (deleteTransformation) {
+      removeTransformation(deleteTransformation.id);
+    }
+    if (maskTransformation) {
+      removeTransformation(maskTransformation.id);
+    }
+    if (renameTransformation) {
+      removeTransformation(renameTransformation.id);
+    }
+    if (addTransformationRecord) {
+      removeTransformation(addTransformationRecord.id);
+    }
+  };
+
+  const handleMask = () => {
+    if (!selection) return;
+
+    addTransformation({
+      id: `t-${Date.now()}`,
+      type: TransformationType.MASK,
+      order: 0,
+      sectionId: attribute.sectionId,
+      createdAt: new Date(),
+      status: TransformationStatus.ACTIVE,
+      params: {
+        type: TransformationType.MASK,
+        attributePath: attribute.path,
+        attributeKey: attribute.key,
+        maskStart: selection.start,
+        maskEnd: selection.end,
+        maskChar: '*',
+      },
+    });
+    clearSelection();
+  };
+
+  const handleNewAttribute = () => {
+    if (!selection) return;
+
+    // Request substring form from parent
+    if (onRequestSubstring) {
+      onRequestSubstring({
+        sourceKey: attribute.key,
+        sourcePath: attribute.path,
+        sectionId: attribute.sectionId,
+        substringStart: selection.start,
+        substringEnd: selection.end,
+      });
+    }
+    clearSelection();
+  };
+
+  const handleEditOTTL = () => {
+    setOttlStatement(attribute.value);
+    setIsEditingOTTL(true);
+    // Focus input after state update
+    setTimeout(() => {
+      ottlInputRef.current?.focus();
+      ottlInputRef.current?.select();
+    }, 0);
+  };
+
+  const handleSaveOTTL = () => {
+    const trimmed = ottlStatement.trim();
+    if (trimmed === '') {
+      setIsEditingOTTL(false);
+      return;
+    }
+
+    if (trimmed === attribute.value) {
+      setIsEditingOTTL(false);
+      return;
+    }
+
+    // Find the transformation for this OTTL
+    if (attribute.modifications.length > 0) {
+      const transformationId = attribute.modifications[0].transformationId;
+      updateTransformation(transformationId, {
+        params: {
+          type: TransformationType.RAW_OTTL,
+          statement: trimmed,
+          insertionPoint: attribute.sectionId,
+        },
+      });
+    }
+
+    setIsEditingOTTL(false);
+  };
+
+  const handleCancelOTTL = () => {
+    setIsEditingOTTL(false);
+  };
+
+  const handleOTTLKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveOTTL();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelOTTL();
+    }
+  };
+
+  const handleValueMouseEnter = () => {
+    if (isDeleted || isMasked || isRenamed) return;
+    // Just set hover state - don't auto-select
+    setIsValueHovered(true);
+  };
+
+  const handleValueMouseLeave = () => {
+    setIsValueHovered(false);
+  };
+
+  const getModificationLabel = () => {
+    if (isDeleted) {
+      return (
+        <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800">
+          DELETE
+        </span>
+      );
+    }
+
+    if (isMasked && maskTransformation) {
+      const params = maskTransformation.params as any;
+      // Check if masking entire string
+      const rawValue = attribute.value.replace(/^"|"$/g, ''); // Strip quotes for length check
+      const isEntireString = params.maskStart === 0 && 
+        (params.maskEnd === 'end' || params.maskEnd === rawValue.length);
+      
+      const range = isEntireString
+        ? '[Entire str]'
+        : params.maskEnd === 'end'
+          ? `[${params.maskStart}–end]`
+          : `[${params.maskStart}–${params.maskEnd}]`;
+      return (
+        <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
+          MASK {range}
+        </span>
+      );
+    }
+
+    if (isRenamed) {
+      return (
+        <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
+          RENAME KEY
+        </span>
+      );
+    }
+
+    if (attribute.modifications.length === 0) return null;
+    
+    const modification = attribute.modifications[0];
+    const labelMap: Record<string, { text: string; color: string }> = {
+      'add': { text: 'ADD', color: 'bg-green-100 text-green-800' },
+      'add-static': { text: 'ADD', color: 'bg-green-100 text-green-800' },
+      'add-substring': { text: 'ADD', color: 'bg-green-100 text-green-800' },
+      'raw-ottl': { text: 'OTTL', color: 'bg-purple-100 text-purple-800' },
+      'delete': { text: 'DELETE', color: 'bg-red-100 text-red-800' },
+      'mask': { text: 'MASK', color: 'bg-blue-100 text-blue-800' },
+      'rename-key': { text: 'RENAME KEY', color: 'bg-blue-100 text-blue-800' },
+    };
+
+    const label = labelMap[modification.type];
+    if (!label) return null;
+
+    return (
+      <span
+        className={`rounded px-1.5 py-0.5 text-xs font-medium ${label.color}`}
+      >
+        {label.text}
+      </span>
+    );
+  };
+
+  const getRowBackgroundClass = () => {
+    // Editing state gets darker background
+    if (isRenaming || isEditingOTTL) {
+      return 'bg-gray-200';
+    }
+    // All modified lines get light gray background
+    if (isDeleted || isMasked || isRenamed || attribute.modifications.length > 0) {
+      return 'bg-gray-50';
+    }
+    return '';
+  };
+
+  const getTextClass = () => {
+    if (isDeleted) return 'line-through text-gray-400';
+    return 'text-gray-900';
+  };
+
+  const getMaskedValue = () => {
+    if (!isMasked || !maskTransformation) return null;
+
+    const params = maskTransformation.params as any;
+    // Get raw value (strip quotes if it's a string type)
+    let rawValue = attribute.value;
+    if (attribute.valueType === ValueType.STRING && typeof rawValue === 'string') {
+      if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+        rawValue = rawValue.slice(1, -1);
+      }
+    }
+    
+    const start = params.maskStart;
+    const end = params.maskEnd === 'end' ? rawValue.length : params.maskEnd;
+    const maskChar = params.maskChar || '*';
+
+    const before = rawValue.substring(0, start);
+    const masked = maskChar.repeat(end - start);
+    const after = rawValue.substring(end);
+
+    const maskedValue = before + masked + after;
+    
+    // Wrap in quotes if it's a string type
+    return attribute.valueType === ValueType.STRING ? `"${maskedValue}"` : maskedValue;
+  };
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    // Keep original item slightly visible when dragging
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <>
+      {/* Drop indicator line */}
+      {showDropIndicator && (
+        <div className="h-0.5 bg-blue-500 mx-4 mb-0.5" />
+      )}
+      
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`relative flex items-center py-1.5 mb-0.5 transition-colors hover:bg-gray-200 leading-none ${getRowBackgroundClass()}`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Drag handle - positioned absolutely on the left, vertically centered */}
+        {(isDeleted || isMasked || isRenamed || attribute.modifications.some(m => m.type === 'add-static' || m.type === 'add-substring' || m.type === 'raw-ottl')) && (
+          <div 
+            {...sortableAttributes}
+            {...listeners}
+            className="absolute cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2"
+            style={{ left: `${4 + attribute.depth * 16}px` }}
+          >
+            <GripVertical className="h-4 w-4 text-gray-600" />
+          </div>
+        )}
+
+        {/* For raw OTTL, merge columns and show full statement */}
+        {attribute.isRawOTTL ? (
+          isEditingOTTL ? (
+            // Editing mode for OTTL
+            <div className="flex-1 flex items-center gap-1" style={{ paddingLeft: `${40 + attribute.depth * 16}px` }}>
+              <SquareTerminal className="h-4 w-4 text-gray-600" />
+              <input
+                ref={ottlInputRef}
+                type="text"
+                value={ottlStatement}
+                onChange={(e) => setOttlStatement(e.target.value)}
+                onKeyDown={handleOTTLKeyDown}
+                className="flex-1 rounded-md border border-blue-300 bg-white px-2 py-1 font-mono text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
+              />
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleSaveOTTL}
+                className="rounded-md px-2 py-1 bg-gray-900 text-white text-xs whitespace-nowrap transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
+                title="Save (Enter)"
+              >
+                Save ↵
+              </button>
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleCancelOTTL}
+                className="rounded-md px-2 py-1 bg-white text-gray-700 text-xs border border-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
+                title="Cancel (Esc)"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            // Display mode for OTTL
+            <div className="flex-1 flex items-center" style={{ paddingLeft: `${40 + attribute.depth * 16}px` }}>
+              <div className="flex items-center gap-2 flex-1">
+                <SquareTerminal className="h-4 w-4 text-gray-600" />
+                <span 
+                  className="font-mono text-xs text-gray-700 leading-none cursor-text"
+                  onClick={handleEditOTTL}
+                >
+                  {attribute.value}
+                </span>
+              </div>
+              {/* Modification label for OTTL */}
+              <div className="ml-4 flex items-center gap-2">
+                {getModificationLabel()}
+              </div>
+              {/* Buttons (Undo for added/deleted attributes) for OTTL */}
+              {isHovered && (
+                <div className="absolute right-0">
+                  {isAdded || isDeleted ? (
+                    <button
+                      onClick={handleUndo}
+                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      aria-label="Undo"
+                      title="Undo"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleDelete}
+                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                      aria-label="Delete"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        ) : (
+          <>
+        {/* Key - fixed width container with indented content */}
+        <div className="w-[360px] flex-shrink-0 flex items-center pr-4 leading-none">
+          <div style={{ paddingLeft: `${40 + attribute.depth * 16}px` }} className="flex items-center gap-3 leading-none">
+            {/* Key text */}
+            <div className="flex-1 min-w-0 leading-none">
+          {isRenaming ? (
+            <RenameKeyForm
+              oldKey={attribute.key}
+              attributePath={attribute.path}
+              sectionId={attribute.sectionId}
+              onCancel={() => setIsRenaming(false)}
+              onSave={() => setIsRenaming(false)}
+            />
+          ) : isRenamed && renameTransformation ? (
+            <div className="flex flex-col gap-1 leading-none">
+              <span className="font-mono text-xs text-gray-900 leading-none">
+                {(renameTransformation.params as any).newKey}
+              </span>
+              <span className="font-mono text-[10px] text-gray-400 line-through leading-none">
+                {attribute.key}
+              </span>
+            </div>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`font-mono text-xs cursor-text leading-none ${isDeleted ? 'text-gray-400 line-through' : 'text-gray-700 hover:text-gray-900'}`}
+                    onClick={() => !isDeleted && !isMasked && setIsRenaming(true)}
+                  >
+                    {attribute.key}
+                  </span>
+                </TooltipTrigger>
+                {isHovered && !isDeleted && !isMasked && (
+                  <TooltipContent>
+                    <p>Click to rename</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+            </div>
+          </div>
+        </div>
+
+        {/* Value - always starts at the same position */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex-1 min-w-0 cursor-text leading-none">
+                {isMasked ? (
+                  <span className="flex flex-col gap-1 leading-none">
+                    <span className="font-mono text-xs text-emerald-600 leading-none">
+                      {getMaskedValue()}
+                    </span>
+                    <span className="font-mono text-[10px] text-gray-400 line-through leading-none">
+                      {attribute.value}
+                    </span>
+                  </span>
+                ) : isDeleted ? (
+                  <span className={`font-mono text-xs ${getTextClass()} leading-none`}>
+                    {attribute.value}
+                  </span>
+                ) : attribute.modifications.some(m => m.type === 'add-substring') ? (
+                  <span className="flex flex-col gap-1 leading-none">
+                    <SyntaxHighlighter
+                      value={attribute.value}
+                      valueType={attribute.valueType}
+                      className={`font-mono text-xs ${getTextClass()} leading-none`}
+                    />
+                    {(() => {
+                      const substringTransformation = transformations.find(
+                        t => t.type === 'add-substring' && 
+                        (t.params as any).newKey === attribute.key &&
+                        t.sectionId === attribute.sectionId
+                      );
+                      if (substringTransformation) {
+                        const params = substringTransformation.params as any;
+                        const endValue = params.substringEnd === 'end' ? 'end' : params.substringEnd;
+                        return (
+                          <span className="font-mono text-[10px] text-gray-400 leading-none">
+                            Substr({params.sourceKey}, {params.substringStart}–{endValue})
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </span>
+                ) : (
+                  <span 
+                    ref={valueRef} 
+                    className="leading-none"
+                    onMouseEnter={handleValueMouseEnter}
+                    onMouseLeave={handleValueMouseLeave}
+                  >
+                    <SyntaxHighlighter
+                      value={attribute.value}
+                      valueType={attribute.valueType}
+                      className={`font-mono text-xs ${getTextClass()} leading-none`}
+                    />
+                  </span>
+                )}
+              </div>
+            </TooltipTrigger>
+            {/* Show "Select to transform" tooltip on hover, hide when mask selector is active */}
+            {isHovered && !isDeleted && !isMasked && !showMaskSelector && (
+              <TooltipContent>
+                <p>Select to transform</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Modification label - always visible on the right */}
+        {getModificationLabel()}
+
+        {/* Delete/Undo button - positioned absolutely on the right */}
+        {isHovered && !isRenaming && (
+          <div className="absolute right-0">
+            {(isDeleted || isMasked || isRenamed || isAdded) ? (
+              <button
+                onClick={handleUndo}
+                className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                aria-label="Undo"
+                title="Undo"
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleDelete}
+                className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                aria-label="Delete attribute"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+        </>
+        )}
+      </div>
+
+      {/* Mask/Substring selector tooltip */}
+      {showMaskSelector && selection && (
+        <MaskValueSelector
+          selection={selection}
+          position={selectorPosition}
+          onMask={handleMask}
+          onNewAttribute={handleNewAttribute}
+          onClose={() => {
+            clearSelection();
+            setShowMaskSelector(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+

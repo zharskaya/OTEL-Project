@@ -1,0 +1,11 @@
+{
+  "name": "otel-transformation-workspace",
+  "private": true,
+  "workspaces": [
+    "otel-transformation"
+  ]
+}
+
+
+
+
