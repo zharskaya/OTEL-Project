@@ -1,0 +1,14 @@
+{
+  "typescript.tsdk": "otel-transformation/node_modules/typescript/lib",
+  "eslint.workingDirectories": ["otel-transformation"],
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true
+  },
+  "files.exclude": {
+    "**/.next": true
+  },
+  "git.ignoreLimitWarning": true
+}
+
+

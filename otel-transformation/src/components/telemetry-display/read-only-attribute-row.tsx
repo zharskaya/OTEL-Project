@@ -12,8 +12,16 @@ export function ReadOnlyAttributeRow({ attribute }: ReadOnlyAttributeRowProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Check if this attribute was added or modified
-  const isAdded = attribute.modifications.some(m => m.type === 'add');
-  const isModified = attribute.modifications.some(m => m.type === 'modify');
+  const isAdded = attribute.modifications.some(m => 
+    m.type === 'add' || 
+    m.type === 'add-static' || 
+    m.type === 'add-substring'
+  );
+  const isModified = attribute.modifications.some(m => 
+    m.type === 'modify' || 
+    m.type === 'mask' || 
+    m.type === 'rename-key'
+  );
 
   const getBackgroundClass = () => {
     if (isAdded) return 'bg-green-50';

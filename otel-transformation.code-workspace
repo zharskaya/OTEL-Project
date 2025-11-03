@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "name": "OTel Transformation",
+      "path": "otel-transformation"
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "otel-transformation/node_modules/typescript/lib",
+    "eslint.workingDirectories": ["otel-transformation"]
+  }
+}
+
+
