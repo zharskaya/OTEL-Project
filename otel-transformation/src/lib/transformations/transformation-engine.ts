@@ -145,7 +145,7 @@ export class TransformationEngine {
         }
       });
       
-      // Sort attributes: added ones first, then modified, then unchanged
+      // Sort attributes: only move added ones to the top, keep others in original position
       section.attributes.sort((a, b) => {
         const aIsAdded = a.modifications.some(m => 
           m.type === 'add-static' || m.type === 'add-substring'
@@ -154,22 +154,11 @@ export class TransformationEngine {
           m.type === 'add-static' || m.type === 'add-substring'
         );
         
-        const aIsModified = a.modifications.some(m => 
-          m.type === 'mask' || m.type === 'rename-key'
-        );
-        const bIsModified = b.modifications.some(m => 
-          m.type === 'mask' || m.type === 'rename-key'
-        );
-        
-        // Added first
+        // Added attributes go to the top
         if (aIsAdded && !bIsAdded) return -1;
         if (!aIsAdded && bIsAdded) return 1;
         
-        // Then modified
-        if (aIsModified && !bIsModified) return -1;
-        if (!aIsModified && bIsModified) return 1;
-        
-        // Keep original order for the rest
+        // Everything else (modified and unchanged) stays in original order
         return 0;
       });
     });
