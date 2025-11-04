@@ -46,7 +46,7 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
       key = tokens[0];
       value = '';
     } else {
-      // Rule 2: More than one string -> first is key, second is value
+      // Rule 2: 2+ strings -> first is key, second is value (ignore rest)
       key = tokens[0];
       value = tokens[1];
     }
