@@ -197,9 +197,12 @@ export function TreeSection({ section }: TreeSectionProps) {
         }
       }
       
+      // Save order to store so OUTPUT can use it
+      setAttributeOrder(section.id, result);
+      
       return result;
     });
-  }, [baseAttributes]);
+  }, [baseAttributes, section.id, setAttributeOrder]);
   
   // Sort attributes by visual order
   const allAttributes = React.useMemo(() => {
