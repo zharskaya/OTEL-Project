@@ -215,30 +215,14 @@ export class TransformationEngine {
     modifications: Map<string, any[]>,
     transformations: Transformation[]
   ): void {
-    // Apply modifications to each section's attributes and sort
+    // Apply modifications to each section's attributes
+    // No sorting - keep attributes in their original positions to match INPUT
     tree.sections.forEach(section => {
       section.attributes.forEach(attribute => {
         const modKey = `${section.id}:${attribute.key}`;
         if (modifications.has(modKey)) {
           attribute.modifications = modifications.get(modKey)!;
         }
-      });
-      
-      // Sort attributes: only move added ones to the top, keep others in original position
-      section.attributes.sort((a, b) => {
-        const aIsAdded = a.modifications.some(m => 
-          m.type === 'add-static' || m.type === 'add-substring'
-        );
-        const bIsAdded = b.modifications.some(m => 
-          m.type === 'add-static' || m.type === 'add-substring'
-        );
-        
-        // Added attributes go to the top
-        if (aIsAdded && !bIsAdded) return -1;
-        if (!aIsAdded && bIsAdded) return 1;
-        
-        // Everything else (modified and unchanged) stays in original order
-        return 0;
       });
     });
   }
