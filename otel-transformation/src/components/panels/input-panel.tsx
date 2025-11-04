@@ -31,11 +31,11 @@ export function InputPanel({
                 onClick={onRun}
                 className="flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-900 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-900 cursor-pointer"
               >
-                Run &gt;
+                Run
               </button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Run transformation (⌘ + Enter) to preview the output</p>
+              <p>Run transformation (⌘/Ctrl + Enter) to preview the output</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

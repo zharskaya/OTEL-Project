@@ -20,9 +20,9 @@ export function ReadOnlyTreeSection({ section }: ReadOnlyTreeSectionProps) {
       {/* Section Header */}
       <button
         onClick={toggleExpand}
-        className="w-full flex items-center bg-gray-200 px-4 py-1.5 text-left hover:bg-gray-300 transition-colors cursor-pointer"
+        className="w-full flex items-center bg-gray-200 px-4 py-2 min-h-[44px] text-left hover:bg-gray-300 transition-colors cursor-pointer"
       >
-        <span className="mr-2 text-gray-600 text-sm leading-tight">
+        <span className="mr-2 text-gray-700 text-sm leading-tight">
           {isExpanded ? '▾' : '▸'}
         </span>
         <span className="font-semibold text-sm text-gray-900 leading-tight">

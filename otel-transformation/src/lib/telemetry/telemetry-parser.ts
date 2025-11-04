@@ -12,17 +12,21 @@ import {
  * Parses OTLP resource spans into a hierarchical tree structure for display
  */
 export class TelemetryParser {
+  private static uniqueIdCounter = 0;
+
   /**
    * Parse OTLP resource spans into display tree
    */
   static parse(resourceSpans: ResourceSpan[]): TelemetryTree {
     const sections: TelemetrySection[] = [];
+    // Reset counter for each parse to ensure consistency
+    this.uniqueIdCounter = 0;
 
     resourceSpans.forEach((resourceSpan, rsIndex) => {
       // Parse Resource section
       const resourceAttributes = resourceSpan.resource.attributes.map((attr, idx) =>
         this.createAttribute(
-          `resource-${rsIndex}-attr-${idx}`,
+          `resource-${rsIndex}-attr-${idx}-${attr.key}`,
           `resourceSpans[${rsIndex}].resource.attributes[${idx}]`,
           `resource-${rsIndex}`,
           attr.key,
@@ -94,7 +98,7 @@ export class TelemetryParser {
           // Span Attributes section
           const spanAttributes = span.attributes.map((attr, idx) =>
             this.createAttribute(
-              `span-${rsIndex}-${ssIndex}-${sIndex}-attr-${idx}`,
+              `span-${rsIndex}-${ssIndex}-${sIndex}-attr-${idx}-${attr.key}`,
               `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].attributes[${idx}]`,
               `span-attributes-${rsIndex}-${ssIndex}-${sIndex}`,
               attr.key,
@@ -131,7 +135,7 @@ export class TelemetryParser {
                 ),
                 ...event.attributes.map((attr, aIndex) =>
                   this.createAttribute(
-                    `event-${rsIndex}-${ssIndex}-${sIndex}-${eIndex}-attr-${aIndex}`,
+                    `event-${rsIndex}-${ssIndex}-${sIndex}-${eIndex}-attr-${aIndex}-${attr.key}`,
                     `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].events[${eIndex}].attributes[${aIndex}]`,
                     `events-${rsIndex}-${ssIndex}-${sIndex}`,
                     attr.key,
@@ -161,7 +165,7 @@ export class TelemetryParser {
                 ),
                 ...link.attributes.map((attr, aIndex) =>
                   this.createAttribute(
-                    `link-${rsIndex}-${ssIndex}-${sIndex}-${lIndex}-attr-${aIndex}`,
+                    `link-${rsIndex}-${ssIndex}-${sIndex}-${lIndex}-attr-${aIndex}-${attr.key}`,
                     `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].links[${lIndex}].attributes[${aIndex}]`,
                     `links-${rsIndex}-${ssIndex}-${sIndex}`,
                     attr.key,
@@ -194,7 +198,7 @@ export class TelemetryParser {
           ),
           ...scopeSpan.scope.attributes.map((attr, idx) =>
             this.createAttribute(
-              `scope-${rsIndex}-${ssIndex}-attr-${idx}`,
+              `scope-${rsIndex}-${ssIndex}-attr-${idx}-${attr.key}`,
               `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].scope.attributes[${idx}]`,
               `scope-info-${rsIndex}-${ssIndex}`,
               attr.key,
@@ -247,8 +251,14 @@ export class TelemetryParser {
     const stringValue = this.anyValueToString(value);
     const valueType = this.detectValueType(value);
 
+    // Create truly unique ID: base ID + counter
+    // The counter increments for each attribute in a parse session
+    // This ensures even duplicate keys get unique IDs
+    this.uniqueIdCounter++;
+    const uniqueId = `${id}-c${this.uniqueIdCounter}`;
+
     return {
-      id,
+      id: uniqueId,
       path,
       sectionId,
       key,

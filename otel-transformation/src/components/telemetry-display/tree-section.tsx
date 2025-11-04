@@ -75,13 +75,17 @@ export function TreeSection({ section }: TreeSectionProps) {
   const addedAttributes = React.useMemo(() => {
     return sectionTransformations
       .filter(t => t.type === 'add-static' || t.type === 'add-substring' || t.type === 'raw-ottl')
-      .map(t => {
+      .map((t, idx) => {
         const params = t.params as any;
+        // Create unique ID using stable transformation ID
+        // The transformation ID already contains timestamp, so it's unique
+        const key = params.newKey || params.key || 'OTTL';
+        const uniqueId = `added-${section.id}-${key}-${t.id}-idx${idx}`;
         
         // For raw OTTL, display the statement as entered (no parsing)
         if (t.type === 'raw-ottl') {
           return {
-            id: `added-${t.id}`,
+            id: uniqueId,
             path: `${params.insertionPoint}.ottl-${t.id}`,
             sectionId: section.id,
             key: 'OTTL',
@@ -121,7 +125,7 @@ export function TreeSection({ section }: TreeSectionProps) {
         }
         
         return {
-          id: `added-${t.id}`,
+          id: uniqueId,
           path: `${params.insertionPoint}.${params.newKey || params.key}`,
           sectionId: section.id,
           key: params.newKey || params.key,
