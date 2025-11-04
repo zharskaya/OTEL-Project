@@ -90,7 +90,7 @@ export class TransformationEngine {
           color: ModificationColor.GREEN,
         });
         
-        // For demo: actually add the attribute to the data
+        // Actually add the attribute to the data
         if (sectionId.includes('resource')) {
           data.resource.attributes.push({
             key,
@@ -108,22 +108,101 @@ export class TransformationEngine {
         break;
       }
       
-      case TransformationType.MASK:
-      case TransformationType.RENAME_KEY: {
-        // Track as modified
-        const key = params.attributeKey || params.oldKey;
+      case TransformationType.DELETE: {
+        // Delete the attribute
+        const key = params.attributeKey;
         const sectionId = transformation.sectionId;
-        const modKey = `${sectionId}:${key}`;
         
+        if (sectionId.includes('resource')) {
+          data.resource.attributes = data.resource.attributes.filter(attr => attr.key !== key);
+        } else if (sectionId.includes('span-attributes')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            span.attributes = span.attributes.filter(attr => attr.key !== key);
+          }
+        }
+        break;
+      }
+      
+      case TransformationType.MASK: {
+        // Mask the attribute value
+        const key = params.attributeKey;
+        const sectionId = transformation.sectionId;
+        const maskStart = params.maskStart;
+        const maskEnd = params.maskEnd;
+        const maskChar = params.maskChar || '*';
+        
+        // Track as modified
+        const modKey = `${sectionId}:${key}`;
         if (!modifications.has(modKey)) {
           modifications.set(modKey, []);
         }
         modifications.get(modKey)!.push({
           transformationId: transformation.id,
           type: transformation.type,
-          label: transformation.type === TransformationType.MASK ? 'MASK' : 'RENAME',
+          label: 'MASK',
           color: ModificationColor.BLUE,
         });
+        
+        // Apply masking - always use 5 asterisks
+        const applyMask = (attributes: any[]) => {
+          const attr = attributes.find(a => a.key === key);
+          if (attr && attr.value.stringValue) {
+            const original = attr.value.stringValue;
+            const endIdx = maskEnd === 'end' ? original.length : maskEnd;
+            const masked = 
+              original.substring(0, maskStart) +
+              '*****' +
+              original.substring(endIdx);
+            attr.value.stringValue = masked;
+          }
+        };
+        
+        if (sectionId.includes('resource')) {
+          applyMask(data.resource.attributes);
+        } else if (sectionId.includes('span-attributes')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            applyMask(span.attributes);
+          }
+        }
+        break;
+      }
+      
+      case TransformationType.RENAME_KEY: {
+        // Rename the attribute key
+        const oldKey = params.oldKey;
+        const newKey = params.newKey;
+        const sectionId = transformation.sectionId;
+        
+        // Track as modified (use newKey for tracking)
+        const modKey = `${sectionId}:${newKey}`;
+        if (!modifications.has(modKey)) {
+          modifications.set(modKey, []);
+        }
+        modifications.get(modKey)!.push({
+          transformationId: transformation.id,
+          type: transformation.type,
+          label: 'RENAME',
+          color: ModificationColor.BLUE,
+        });
+        
+        // Apply rename
+        const applyRename = (attributes: any[]) => {
+          const attr = attributes.find(a => a.key === oldKey);
+          if (attr) {
+            attr.key = newKey;
+          }
+        };
+        
+        if (sectionId.includes('resource')) {
+          applyRename(data.resource.attributes);
+        } else if (sectionId.includes('span-attributes')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            applyRename(span.attributes);
+          }
+        }
         break;
       }
     }
