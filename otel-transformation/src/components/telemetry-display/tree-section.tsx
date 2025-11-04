@@ -84,8 +84,8 @@ export function TreeSection({ section }: TreeSectionProps) {
             id: `added-${t.id}`,
             path: `${params.insertionPoint}.ottl-${t.id}`,
             sectionId: section.id,
-            key: params.key || 'OTTL', // Use parsed key
-            value: params.value || params.statement || '', // Use parsed value or fallback to statement
+            key: params.key || 'OTTL',
+            value: params.value || '',
             valueType: ValueType.STRING,
             depth: 0,
             isRawOTTL: true, // Mark as raw OTTL for special rendering

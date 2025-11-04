@@ -75,6 +75,6 @@ export default function Home() {
         }
       />
       <KeyboardHintsBar />
-    </main>
+      </main>
   );
 }
