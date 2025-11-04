@@ -36,7 +36,6 @@ jobs:
         working-directory: ./otel-transformation
         env:
           NODE_ENV: production
-          LIGHTNINGCSS_FORCE_WASM: 1
 
       - name: Add .nojekyll file
         run: touch ./otel-transformation/out/.nojekyll
