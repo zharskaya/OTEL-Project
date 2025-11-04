@@ -72,13 +72,9 @@ export function SubstringAttributeForm({
   };
 
   const handleClickOutside = (e: React.MouseEvent) => {
+    // Click outside always cancels
     if (e.target === e.currentTarget) {
-      // Click outside: save if key is not empty, cancel if empty
-      if (newKey.trim() === '') {
-        onCancel();
-      } else {
-        handleSave();
-      }
+      onCancel();
     }
   };
 
@@ -108,14 +104,20 @@ export function SubstringAttributeForm({
       {/* Buttons overlaying value area */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
         <button
-          onClick={handleSave}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent click from bubbling to parent
+            handleSave();
+          }}
           className="rounded-md px-2 py-1.5 bg-gray-900 text-white text-xs whitespace-nowrap transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
           title="Save (Enter)"
         >
           Save ↵
         </button>
         <button
-          onClick={onCancel}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent click from bubbling to parent
+            onCancel();
+          }}
           className="rounded-md px-2 py-1.5 bg-white text-gray-700 text-xs border border-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
           title="Cancel (Esc)"
         >
