@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
-  // @ts-ignore - Force webpack instead of turbopack
-  turbopack: false,
+  // Empty turbopack config to satisfy Next.js 16+ requirements
+  turbopack: {},
   webpack: (config) => {
     return config;
   },
