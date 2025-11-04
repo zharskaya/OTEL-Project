@@ -56,6 +56,17 @@ export function useTextSelection(ref: RefObject<HTMLElement | null>) {
           // Normalize: start is always the smaller position, end is always the larger
           let start = Math.min(anchorPos, focusPos);
           let end = Math.max(anchorPos, focusPos);
+          
+          // Debug logging
+          console.log('Selection Debug:', {
+            selectedText,
+            anchorPos,
+            focusPos,
+            start,
+            end,
+            direction: anchorPos <= focusPos ? 'forward' : 'backward',
+            fullText: fullText.substring(0, 50)
+          });
 
           // Check if fullText is wrapped in quotes (e.g., "MyService")
           // If so, adjust positions to exclude quotes
