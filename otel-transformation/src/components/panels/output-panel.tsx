@@ -57,7 +57,7 @@ export function OutputPanel({
                   </div>
                 )}
                 {/* Output content with reduced opacity when changes exist */}
-                <div className={`p-4 ${hasChanges ? 'opacity-60' : ''}`}>
+                <div className={`p-4 ${hasChanges ? 'opacity-50' : ''}`}>
                   {children}
                 </div>
               </>
