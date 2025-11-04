@@ -89,7 +89,8 @@ export function RenameKeyForm({
         onChange={(e) => setNewKey(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className="w-[200px] rounded-md border border-blue-300 bg-white px-2 py-1 font-mono text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
+        placeholder="Enter new_key"
+        className="w-[200px] rounded-md border border-blue-300 bg-white px-2 py-1 font-mono text-xs text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
       />
       <button
         onMouseDown={(e) => e.preventDefault()} // Prevent blur

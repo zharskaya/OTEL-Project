@@ -111,7 +111,7 @@ export function AddAttributeForm({
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Enter key=value or key:value or key,value"
+        placeholder="Enter new_key = new_value"
         className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 font-mono text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
       />
       <button
