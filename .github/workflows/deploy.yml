@@ -29,8 +29,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './package-lock.json'
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
+
+      - name: Install project dependencies
+        run: npm install
+        working-directory: ./otel-transformation
 
       - name: Build Next.js
         run: npm run build
