@@ -171,30 +171,29 @@ export function TreeSection({ section }: TreeSectionProps) {
         return prev;
       }
       
-      // Keep existing order for items that are still present
-      const newIdsSet = new Set(newIds);
-      const existing = prev.filter(id => newIdsSet.has(id));
-      
-      // Add new items at their natural position
+      // Find what's new and what's removed
       const prevSet = new Set(prev);
+      const newIdsSet = new Set(newIds);
       const added = newIds.filter(id => !prevSet.has(id));
+      const removed = prev.filter(id => !newIdsSet.has(id));
       
-      // If no new items and no removed items, keep existing order
-      if (added.length === 0 && existing.length === prev.length) {
+      // If no changes, keep existing order
+      if (added.length === 0 && removed.length === 0) {
         return prev;
       }
       
-      // Merge: keep existing order, insert new items where they appear in baseAttributes
+      // CRITICAL: Keep exact order of existing attributes, only add new ones at the top
       const result: string[] = [];
-      for (const id of newIds) {
-        if (added.includes(id)) {
-          // New item - add at its natural position
-          result.push(id);
-        } else if (existing.includes(id) && !result.includes(id)) {
-          // Existing item - add if not already added
+      
+      // 1. Add new attributes at the top (in the order they appear in baseAttributes)
+      result.push(...added);
+      
+      // 2. Add existing attributes in their EXACT current order (from prev/visualOrder)
+      prev.forEach(id => {
+        if (newIdsSet.has(id)) {
           result.push(id);
         }
-      }
+      });
       
       // Save order to store so OUTPUT can use it
       setAttributeOrder(section.id, result);
