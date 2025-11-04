@@ -11,18 +11,18 @@ export const SAMPLE_TELEMETRY_DATA: { resourceSpans: ResourceSpan[] } = {
       resource: {
         attributes: [
           {
-            key: 'dash0.resource.id',
+            key: 'test.resource.id',
             value: { stringValue: '17955346340932591855' },
           },
           {
-            key: 'dash0.resource.name',
+            key: 'test.resource.name',
             value: {
               stringValue:
                 'opentelemetry-demo-frontendproxy-58b488b55d-g7c4t',
             },
           },
           {
-            key: 'dash0.resource.type',
+            key: 'test.resource.type',
             value: { stringValue: 'k8s.pod' },
           },
           {
@@ -38,7 +38,7 @@ export const SAMPLE_TELEMETRY_DATA: { resourceSpans: ResourceSpan[] } = {
             value: { stringValue: 'opentelemetry-demo-frontendproxy' },
           },
           {
-            key: 'dash0.auth.token',
+            key: 'test.auth.token',
             value: { stringValue: 'hxZyXot' },
           },
           {
@@ -136,19 +136,19 @@ export const SAMPLE_TELEMETRY_DATA: { resourceSpans: ResourceSpan[] } = {
                   value: { stringValue: 'proxy' },
                 },
                 {
-                  key: 'dash0.operation.name',
+                  key: 'test.operation.name',
                   value: { stringValue: 'GET /ping' },
                 },
                 {
-                  key: 'dash0.operation.ruleId',
+                  key: 'test.operation.ruleId',
                   value: { stringValue: 'http with url' },
                 },
                 {
-                  key: 'dash0.operation.type',
+                  key: 'test.operation.type',
                   value: { stringValue: 'http' },
                 },
                 {
-                  key: 'dash0.span.type',
+                  key: 'test.span.type',
                   value: { stringValue: 'http' },
                 },
                 {

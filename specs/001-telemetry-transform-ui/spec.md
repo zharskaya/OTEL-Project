@@ -424,15 +424,15 @@ For this demo version, the system uses the following hardcoded telemetry sample 
 
 **Structure Overview**:
 - **Resource**: Contains 22 attributes describing a Kubernetes pod (`opentelemetry-demo-frontendproxy-58b488b55d-g7c4t`) including:
-  - Dash0 identifiers (resource.id, resource.name, resource.type)
+  - Test identifiers (resource.id, resource.name, resource.type)
   - Kubernetes metadata (namespace, pod, deployment, node information)
   - Service identification (service.name, service.namespace)
-  - Authentication token (dash0.auth.token: "hxZyXot") - suitable for masking demonstrations
+  - Authentication token (test.auth.token: "hxZyXot") - suitable for masking demonstrations
 
 - **Scope**: Empty scope with schema URL `https://opentelemetry.io/schemas/1.36.0`
 
 - **Span**: Single span named "ingress" (kind: 2) with 20 attributes including:
-  - Operation details (dash0.operation.name: "GET /ping", dash0.operation.type: "http")
+  - Operation details (test.operation.name: "GET /ping", test.operation.type: "http")
   - HTTP details (method: GET, status: 404, protocol: HTTP/1.1)
   - Request/response metrics (request_size: 0, response_size: 4144)
   - Network information (peer.address: "10.1.217.83", full URL)
