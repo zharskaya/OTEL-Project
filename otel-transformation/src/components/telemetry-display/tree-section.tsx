@@ -195,8 +195,10 @@ export function TreeSection({ section }: TreeSectionProps) {
         }
       });
       
-      // Save order to store so OUTPUT can use it
-      setAttributeOrder(section.id, result);
+      // Save order to store by KEYS (not IDs) so OUTPUT can match them
+      const idToKey = new Map(baseAttributes.map(a => [a.id, a.key]));
+      const keyOrder = result.map(id => idToKey.get(id)).filter((k): k is string => k !== undefined);
+      setAttributeOrder(section.id, keyOrder);
       
       return result;
     });
@@ -255,8 +257,10 @@ export function TreeSection({ section }: TreeSectionProps) {
     const newVisualOrder = arrayMove(visualOrder, oldIndex, newIndex);
     setVisualOrder(newVisualOrder);
     
-    // CRITICAL: Save the new order to the store so OUTPUT panel can use it
-    setAttributeOrder(section.id, newVisualOrder);
+    // CRITICAL: Save the new order to the store by KEYS so OUTPUT panel can use it
+    const idToKey = new Map(allAttributes.map(a => [a.id, a.key]));
+    const keyOrder = newVisualOrder.map(id => idToKey.get(id)).filter((k): k is string => k !== undefined);
+    setAttributeOrder(section.id, keyOrder);
 
     // Now update transformation execution order based on new visual order
     // Find all transformations for modified/added attributes in this section

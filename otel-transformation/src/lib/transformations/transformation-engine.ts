@@ -237,36 +237,38 @@ export class TransformationEngine {
     attributeOrder: Map<string, string[]>
   ): void {
     // Apply custom ordering from drag-and-drop in INPUT panel
+    // attributeOrder now contains KEYS not IDs, so it works across INPUT and OUTPUT
     tree.sections.forEach(section => {
-      const customOrder = attributeOrder.get(section.id);
-      if (customOrder && customOrder.length > 0) {
-        // Create a map for quick lookup
-        const attributeMap = new Map(
-          section.attributes.map(attr => [attr.id, attr])
+      const customKeyOrder = attributeOrder.get(section.id);
+      if (customKeyOrder && customKeyOrder.length > 0) {
+        // Build key-based lookup
+        const keyToAttr = new Map(
+          section.attributes.map(attr => [attr.key, attr])
         );
         
-        // Reorder attributes based on custom order
+        // Reorder attributes based on custom key order
         const reordered: DisplayAttribute[] = [];
-        const orderedIds = new Set(customOrder);
+        const processedKeys = new Set<string>();
         
-        // Add attributes in custom order
-        customOrder.forEach(id => {
-          const attr = attributeMap.get(id);
+        // Add attributes in the custom key order
+        customKeyOrder.forEach(key => {
+          const attr = keyToAttr.get(key);
           if (attr) {
             reordered.push(attr);
+            processedKeys.add(key);
           }
         });
         
-        // Add any remaining attributes not in the custom order (e.g., newly added attributes from transformations)
-        // These should be added at the top since they're new
+        // Add any remaining attributes not in the custom order (newly added via transformations)
+        // These go at the top
         const newAttributes: DisplayAttribute[] = [];
         section.attributes.forEach(attr => {
-          if (!orderedIds.has(attr.id)) {
+          if (!processedKeys.has(attr.key)) {
             newAttributes.push(attr);
           }
         });
         
-        // Put new attributes at the beginning (they appear first in OUTPUT)
+        // Put new attributes first, then ordered attributes
         section.attributes = [...newAttributes, ...reordered];
       }
     });

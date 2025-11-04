@@ -9,7 +9,7 @@ import { TransformationEngine } from '@/lib/transformations/transformation-engin
 interface TransformationStore {
   transformations: Transformation[];
   lastExecutionResult: TransformationResult | null;
-  attributeOrder: Map<string, string[]>; // sectionId -> ordered attribute IDs
+  attributeOrder: Map<string, string[]>; // sectionId -> ordered attribute KEYS (not IDs)
 
   // Actions
   addTransformation: (transformation: Transformation) => void;
