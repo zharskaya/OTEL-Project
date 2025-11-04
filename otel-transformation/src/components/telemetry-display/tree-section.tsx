@@ -187,18 +187,25 @@ export function TreeSection({ section }: TreeSectionProps) {
         return prev;
       }
       
-      // CRITICAL: Keep exact order of existing attributes, only add new ones at the top
+      // CRITICAL: Use baseAttributes order directly when there are new items
+      // This respects the positioning logic in baseAttributes:
+      // - Static/OTTL attributes at top
+      // - Substring attributes above their source
+      // - Original attributes in original positions
       const result: string[] = [];
+      const addedSet = new Set(added);
       
-      // 1. Add new attributes at the top (in the order they appear in baseAttributes)
-      result.push(...added);
-      
-      // 2. Add existing attributes in their EXACT current order (from prev/visualOrder)
-      prev.forEach(id => {
-        if (newIdsSet.has(id)) {
+      for (const id of newIds) {
+        if (addedSet.has(id)) {
+          // New attribute - add in its natural position from baseAttributes
           result.push(id);
+        } else if (prev.includes(id)) {
+          // Existing attribute - only add if we haven't added it yet
+          if (!result.includes(id)) {
+            result.push(id);
+          }
         }
-      });
+      }
       
       // Save order to store by KEYS (not IDs) so OUTPUT can match them
       const idToKey = new Map(baseAttributes.map(a => [a.id, a.key]));
