@@ -488,7 +488,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span
-                    className={`font-mono text-xs cursor-text leading-none ${isDeleted ? 'text-gray-400 line-through' : 'text-gray-700 hover:text-gray-900'}`}
+                    className={`font-mono text-xs cursor-text leading-none ${isDeleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}
                     onClick={() => !isDeleted && !isMasked && setIsRenaming(true)}
                   >
                     {attribute.key}
