@@ -40,13 +40,11 @@ export function AddAttributeForm({
     // Find the first separator
     const separators = ['=', ',', ' '];
     let firstSepIndex = -1;
-    let firstSepChar = '';
     
     for (const sep of separators) {
       const index = trimmed.indexOf(sep);
       if (index !== -1 && (firstSepIndex === -1 || index < firstSepIndex)) {
         firstSepIndex = index;
-        firstSepChar = sep;
       }
     }
     
