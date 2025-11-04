@@ -39,7 +39,7 @@ export class TransformationEngine {
       
       // Apply custom attribute ordering to match INPUT panel
       if (attributeOrder) {
-        this.applyCustomOrder(transformedTree, attributeOrder);
+        this.applyCustomOrder(transformedTree, attributeOrder, transformations);
       }
 
       const endTime = performance.now();
@@ -234,10 +234,21 @@ export class TransformationEngine {
   
   private static applyCustomOrder(
     tree: TelemetryTree,
-    attributeOrder: Map<string, string[]>
+    attributeOrder: Map<string, string[]>,
+    transformations: Transformation[]
   ): void {
     // Apply custom ordering from drag-and-drop in INPUT panel
-    // attributeOrder now contains KEYS not IDs, so it works across INPUT and OUTPUT
+    // attributeOrder contains KEYS, but we need to handle renamed keys
+    
+    // Build a map of old key -> new key for renamed attributes
+    const keyRenameMap = new Map<string, string>();
+    transformations
+      .filter(t => t.type === 'rename-key')
+      .forEach(t => {
+        const params = t.params as any;
+        keyRenameMap.set(params.oldKey, params.newKey);
+      });
+    
     tree.sections.forEach(section => {
       const customKeyOrder = attributeOrder.get(section.id);
       if (customKeyOrder && customKeyOrder.length > 0) {
@@ -251,11 +262,14 @@ export class TransformationEngine {
         const processedKeys = new Set<string>();
         
         // Add attributes in the custom key order
-        customKeyOrder.forEach(key => {
-          const attr = keyToAttr.get(key);
+        customKeyOrder.forEach(oldKey => {
+          // Check if this key was renamed
+          const currentKey = keyRenameMap.get(oldKey) || oldKey;
+          
+          const attr = keyToAttr.get(currentKey);
           if (attr) {
             reordered.push(attr);
-            processedKeys.add(key);
+            processedKeys.add(currentKey);
           }
         });
         
