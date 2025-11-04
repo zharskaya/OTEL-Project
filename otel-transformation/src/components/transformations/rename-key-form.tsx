@@ -32,7 +32,7 @@ export function RenameKeyForm({
   const handleSave = () => {
     const trimmed = newKey.trim();
     if (trimmed === '') {
-      alert('Key name is required');
+      alert('Cannot rename attribute. Key cannot be empty.');
       return;
     }
 

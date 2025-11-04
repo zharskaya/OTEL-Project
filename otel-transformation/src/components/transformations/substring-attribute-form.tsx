@@ -35,7 +35,7 @@ export function SubstringAttributeForm({
   const handleSave = () => {
     const trimmed = newKey.trim();
     if (trimmed === '') {
-      onCancel();
+      alert('Cannot add attribute. Key cannot be empty');
       return;
     }
 
