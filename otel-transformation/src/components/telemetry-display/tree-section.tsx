@@ -54,7 +54,7 @@ export function TreeSection({ section }: TreeSectionProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const transformations = useTransformations();
-  const { reorderTransformations } = useTransformationActions();
+  const { reorderTransformations, setAttributeOrder } = useTransformationActions();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -253,6 +253,9 @@ export function TreeSection({ section }: TreeSectionProps) {
     // Update visual order using arrayMove
     const newVisualOrder = arrayMove(visualOrder, oldIndex, newIndex);
     setVisualOrder(newVisualOrder);
+    
+    // CRITICAL: Save the new order to the store so OUTPUT panel can use it
+    setAttributeOrder(section.id, newVisualOrder);
 
     // Now update transformation execution order based on new visual order
     // Find all transformations for modified/added attributes in this section
