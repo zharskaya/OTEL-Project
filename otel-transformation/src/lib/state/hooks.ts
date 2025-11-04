@@ -1,12 +1,9 @@
 import { useTransformationStore } from './transformation-store';
-import { useUIStore } from './ui-store';
 import { useMemo } from 'react';
 
 /**
- * Custom hooks for accessing store state
+ * Custom hooks for accessing transformation store state
  */
-
-// Transformation store hooks
 export function useTransformations() {
   return useTransformationStore((state) => state.transformations);
 }
@@ -59,62 +56,3 @@ export function useUpdateCount(sectionId: string) {
 export function useAttributeOrder() {
   return useTransformationStore((state) => state.attributeOrder);
 }
-
-// UI store hooks
-export function useUIState() {
-  return useUIStore((state) => state.state);
-}
-
-export function usePanelState() {
-  return useUIStore((state) => state.state.panels);
-}
-
-export function useSelectionState() {
-  return useUIStore((state) => state.state.selection);
-}
-
-export function useKeyboardState() {
-  return useUIStore((state) => state.state.keyboard);
-}
-
-export function useDragDropState() {
-  return useUIStore((state) => state.state.dragDrop);
-}
-
-export function useUIActions() {
-  const setPanelWidth = useUIStore((state) => state.setPanelWidth);
-  const startPanelDrag = useUIStore((state) => state.startPanelDrag);
-  const endPanelDrag = useUIStore((state) => state.endPanelDrag);
-  const selectAttribute = useUIStore((state) => state.selectAttribute);
-  const selectText = useUIStore((state) => state.selectText);
-  const clearSelection = useUIStore((state) => state.clearSelection);
-  const setHoveredAttribute = useUIStore((state) => state.setHoveredAttribute);
-  const setKeyboardMode = useUIStore((state) => state.setKeyboardMode);
-  const setActiveElement = useUIStore((state) => state.setActiveElement);
-  const moveFocus = useUIStore((state) => state.moveFocus);
-  const setHintBarVisible = useUIStore((state) => state.setHintBarVisible);
-  const startDrag = useUIStore((state) => state.startDrag);
-  const updateDropTarget = useUIStore((state) => state.updateDropTarget);
-  const endDrag = useUIStore((state) => state.endDrag);
-  
-  return useMemo(
-    () => ({
-      setPanelWidth,
-      startPanelDrag,
-      endPanelDrag,
-      selectAttribute,
-      selectText,
-      clearSelection,
-      setHoveredAttribute,
-      setKeyboardMode,
-      setActiveElement,
-      moveFocus,
-      setHintBarVisible,
-      startDrag,
-      updateDropTarget,
-      endDrag,
-    }),
-    [setPanelWidth, startPanelDrag, endPanelDrag, selectAttribute, selectText, clearSelection, setHoveredAttribute, setKeyboardMode, setActiveElement, moveFocus, setHintBarVisible, startDrag, updateDropTarget, endDrag]
-  );
-}
-
