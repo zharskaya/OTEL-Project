@@ -33,11 +33,21 @@ export function useTextSelection(ref: RefObject<HTMLElement | null>) {
       ) {
         if (selectedText.length > 0) {
           let fullText = ref.current.textContent || '';
-          const beforeRange = range.cloneRange();
-          beforeRange.selectNodeContents(ref.current);
-          beforeRange.setEnd(range.startContainer, range.startOffset);
-          let start = beforeRange.toString().length;
-          let end = start + selectedText.length;
+          
+          // Calculate positions for both start and end
+          const beforeStartRange = range.cloneRange();
+          beforeStartRange.selectNodeContents(ref.current);
+          beforeStartRange.setEnd(range.startContainer, range.startOffset);
+          const startPos = beforeStartRange.toString().length;
+          
+          const beforeEndRange = range.cloneRange();
+          beforeEndRange.selectNodeContents(ref.current);
+          beforeEndRange.setEnd(range.endContainer, range.endOffset);
+          const endPos = beforeEndRange.toString().length;
+          
+          // Ensure start is always less than end (handle backwards selection)
+          let start = Math.min(startPos, endPos);
+          let end = Math.max(startPos, endPos);
 
           // Check if fullText is wrapped in quotes (e.g., "MyService")
           // If so, adjust positions to exclude quotes
