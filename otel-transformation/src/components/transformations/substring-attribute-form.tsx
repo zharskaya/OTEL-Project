@@ -25,31 +25,12 @@ export function SubstringAttributeForm({
 }: SubstringAttributeFormProps) {
   const [newKey, setNewKey] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLDivElement>(null);
   const { addTransformation } = useTransformationActions();
 
   // Focus on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  // Handle clicks outside the form
-  useEffect(() => {
-    const handleClickOutsideForm = (event: MouseEvent) => {
-      if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        // Clicked outside the form - cancel
-        onCancel();
-      }
-    };
-
-    // Add event listener
-    document.addEventListener('mousedown', handleClickOutsideForm);
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideForm);
-    };
-  }, [onCancel]);
 
   const handleSave = () => {
     const trimmed = newKey.trim();
@@ -90,11 +71,19 @@ export function SubstringAttributeForm({
     }
   };
 
+  const handleBlur = () => {
+    // Save on blur if key is not empty, cancel if empty
+    if (newKey.trim() !== '') {
+      handleSave();
+    } else {
+      onCancel();
+    }
+  };
+
   const range = substringEnd === 'end' ? `${substringStart}..end` : `${substringStart}..${substringEnd}`;
 
   return (
     <div
-      ref={formRef}
       className="relative flex items-center gap-2 border-b border-gray-100 bg-gray-200 px-4 py-2"
     >
       {/* Key field (editable) */}
@@ -104,6 +93,7 @@ export function SubstringAttributeForm({
         value={newKey}
         onChange={(e) => setNewKey(e.target.value)}
         onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
         placeholder="Enter new_key"
         className="w-[360px] rounded-md border border-gray-300 bg-white px-3 py-1.5 font-mono text-xs text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
       />
@@ -116,6 +106,7 @@ export function SubstringAttributeForm({
       {/* Buttons overlaying value area */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
         <button
+          onMouseDown={(e) => e.preventDefault()} // Prevent blur
           onClick={handleSave}
           className="rounded-md px-2 py-1.5 bg-gray-900 text-white text-xs whitespace-nowrap transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
           title="Save (Enter)"
@@ -123,6 +114,7 @@ export function SubstringAttributeForm({
           Save ↵
         </button>
         <button
+          onMouseDown={(e) => e.preventDefault()} // Prevent blur
           onClick={onCancel}
           className="rounded-md px-2 py-1.5 bg-white text-gray-700 text-xs border border-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
           title="Cancel (Esc)"
