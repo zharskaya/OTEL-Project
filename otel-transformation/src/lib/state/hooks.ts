@@ -22,7 +22,8 @@ export function useTransformationActions() {
   const reorderTransformations = useTransformationStore((state) => state.reorderTransformations);
   const executeTransformations = useTransformationStore((state) => state.executeTransformations);
   const clearAll = useTransformationStore((state) => state.clearAll);
-  
+  const setAttributeOrder = useTransformationStore((state) => state.setAttributeOrder);
+
   return useMemo(
     () => ({
       addTransformation,
@@ -31,8 +32,9 @@ export function useTransformationActions() {
       reorderTransformations,
       executeTransformations,
       clearAll,
+      setAttributeOrder,
     }),
-    [addTransformation, updateTransformation, removeTransformation, reorderTransformations, executeTransformations, clearAll]
+    [addTransformation, updateTransformation, removeTransformation, reorderTransformations, executeTransformations, clearAll, setAttributeOrder]
   );
 }
 
@@ -47,11 +49,15 @@ export function useTransformationsBySection(sectionId: string) {
 
 export function useUpdateCount(sectionId: string) {
   const allTransformations = useTransformationStore((state) => state.transformations);
-  
+
   return useMemo(
     () => allTransformations.filter((t) => t.sectionId === sectionId).length,
     [allTransformations, sectionId]
   );
+}
+
+export function useAttributeOrder() {
+  return useTransformationStore((state) => state.attributeOrder);
 }
 
 // UI store hooks

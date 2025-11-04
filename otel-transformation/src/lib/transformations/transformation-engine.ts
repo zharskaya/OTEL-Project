@@ -14,7 +14,8 @@ import { TelemetryParser } from '@/lib/telemetry/telemetry-parser';
 export class TransformationEngine {
   static execute(
     inputData: ResourceSpan,
-    transformations: Transformation[]
+    transformations: Transformation[],
+    attributeOrder?: Map<string, string[]>
   ): TransformationResult {
     const startTime = performance.now();
 
@@ -35,6 +36,11 @@ export class TransformationEngine {
       
       // Apply modification metadata to the tree
       this.applyModificationsToTree(transformedTree, modifications, transformations);
+      
+      // Apply custom attribute ordering to match INPUT panel
+      if (attributeOrder) {
+        this.applyCustomOrder(transformedTree, attributeOrder);
+      }
 
       const endTime = performance.now();
 
@@ -216,7 +222,6 @@ export class TransformationEngine {
     transformations: Transformation[]
   ): void {
     // Apply modifications to each section's attributes
-    // Keep all attributes in their original positions to match INPUT panel
     tree.sections.forEach(section => {
       section.attributes.forEach(attribute => {
         const modKey = `${section.id}:${attribute.key}`;
@@ -224,9 +229,43 @@ export class TransformationEngine {
           attribute.modifications = modifications.get(modKey)!;
         }
       });
-      
-      // No sorting - attributes stay in their original positions
-      // This ensures OUTPUT matches INPUT layout
+    });
+  }
+  
+  private static applyCustomOrder(
+    tree: TelemetryTree,
+    attributeOrder: Map<string, string[]>
+  ): void {
+    // Apply custom ordering from drag-and-drop in INPUT panel
+    tree.sections.forEach(section => {
+      const customOrder = attributeOrder.get(section.id);
+      if (customOrder && customOrder.length > 0) {
+        // Create a map for quick lookup
+        const attributeMap = new Map(
+          section.attributes.map(attr => [attr.id, attr])
+        );
+        
+        // Reorder attributes based on custom order
+        const reordered: DisplayAttribute[] = [];
+        const orderedIds = new Set(customOrder);
+        
+        // Add attributes in custom order
+        customOrder.forEach(id => {
+          const attr = attributeMap.get(id);
+          if (attr) {
+            reordered.push(attr);
+          }
+        });
+        
+        // Add any remaining attributes not in the custom order (new attributes)
+        section.attributes.forEach(attr => {
+          if (!orderedIds.has(attr.id)) {
+            reordered.push(attr);
+          }
+        });
+        
+        section.attributes = reordered;
+      }
     });
   }
 }

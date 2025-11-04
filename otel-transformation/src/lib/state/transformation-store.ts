@@ -9,6 +9,7 @@ import { TransformationEngine } from '@/lib/transformations/transformation-engin
 interface TransformationStore {
   transformations: Transformation[];
   lastExecutionResult: TransformationResult | null;
+  attributeOrder: Map<string, string[]>; // sectionId -> ordered attribute IDs
 
   // Actions
   addTransformation: (transformation: Transformation) => void;
@@ -20,6 +21,7 @@ interface TransformationStore {
   reorderTransformations: (sourceId: string, destinationIndex: number) => void;
   executeTransformations: (inputData: ResourceSpan) => TransformationResult;
   clearAll: () => void;
+  setAttributeOrder: (sectionId: string, order: string[]) => void;
 
   // Selectors
   getTransformationsBySection: (sectionId: string) => Transformation[];
@@ -31,6 +33,7 @@ export const useTransformationStore = create<TransformationStore>(
   (set, get) => ({
     transformations: [],
     lastExecutionResult: null,
+    attributeOrder: new Map(),
 
     addTransformation: (transformation) =>
       set((state) => ({
@@ -75,7 +78,8 @@ export const useTransformationStore = create<TransformationStore>(
     executeTransformations: (inputData) => {
       const result = TransformationEngine.execute(
         inputData,
-        get().transformations
+        get().transformations,
+        get().attributeOrder
       );
       set({ lastExecutionResult: result });
       return result;
@@ -85,6 +89,14 @@ export const useTransformationStore = create<TransformationStore>(
       set({
         transformations: [],
         lastExecutionResult: null,
+        attributeOrder: new Map(),
+      }),
+
+    setAttributeOrder: (sectionId, order) =>
+      set((state) => {
+        const newOrder = new Map(state.attributeOrder);
+        newOrder.set(sectionId, order);
+        return { attributeOrder: newOrder };
       }),
 
     getTransformationsBySection: (sectionId) => {
