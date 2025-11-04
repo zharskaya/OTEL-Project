@@ -24,8 +24,9 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
   const handleSave = () => {
     const statement = input.trim();
     
+    // If empty, just cancel (hide form) without error
     if (!statement) {
-      alert('Cannot add attribute. Key cannot be empty');
+      onCancel();
       return;
     }
 
