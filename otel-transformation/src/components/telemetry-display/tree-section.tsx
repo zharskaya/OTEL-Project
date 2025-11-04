@@ -148,12 +148,17 @@ export function TreeSection({ section }: TreeSectionProps) {
     // Add non-substring attributes at the top (newest first - most recent addition goes to position 0)
     result.push(...[...otherAddedAttrs].reverse());
     
-    // Then add original attributes (they stay in their original order)
-    result.push(...section.attributes);
-    
-    // Note: substring attributes are added inline with their source, handled separately
-    // For now, we'll add them at the end
-    result.push(...substringAttrs);
+    // Then add original attributes with substring attributes inserted ABOVE their source
+    for (const attr of section.attributes) {
+      // Find any substring attributes that were extracted from this attribute
+      const substringsBefore = substringAttrs.filter(sa => sa.sourceAttributePath === attr.path);
+      
+      // Insert substring attributes ABOVE (before) their source attribute
+      result.push(...substringsBefore);
+      
+      // Then add the original attribute
+      result.push(attr);
+    }
     
     return result;
   }, [addedAttributes, section.attributes]);
