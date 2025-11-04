@@ -22,14 +22,36 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
   }, []);
 
   const handleSave = () => {
-    const statement = input.trim();
+    const trimmed = input.trim();
     
-    if (!statement) {
-      onCancel();
+    if (!trimmed) {
+      alert('Cannot add attribute. Key cannot be empty');
       return;
     }
 
-    // Create raw OTTL transformation
+    // Parse input with separators: "=", " ", ",", ":", ";" and sequential combinations
+    // Rule 1: Split by any of these separators (including sequential combinations)
+    const separatorRegex = /[=\s,:;]+/;
+    const tokens = trimmed.split(separatorRegex).filter(t => t.length > 0);
+    
+    let key: string;
+    let value: string;
+    
+    if (tokens.length === 0) {
+      // Empty after splitting (shouldn't happen due to trim check above)
+      alert('Cannot add attribute. Key cannot be empty');
+      return;
+    } else if (tokens.length === 1) {
+      // Rule 3: Only one string -> use as key, value is empty string
+      key = tokens[0];
+      value = '';
+    } else {
+      // Rule 2: More than one string -> first is key, second is value
+      key = tokens[0];
+      value = tokens[1];
+    }
+
+    // Create raw OTTL transformation (stored as key-value)
     addTransformation({
       id: `t-${Date.now()}`,
       type: TransformationType.RAW_OTTL,
@@ -39,7 +61,9 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
       status: TransformationStatus.ACTIVE,
       params: {
         type: TransformationType.RAW_OTTL,
-        statement,
+        statement: trimmed, // Keep original for display
+        key,
+        value,
         insertionPoint: sectionId,
       },
     });
@@ -78,7 +102,7 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Enter OTTL statement"
+        placeholder="Enter key=value or key:value or key value"
         className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 font-mono text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
       />
       <button
