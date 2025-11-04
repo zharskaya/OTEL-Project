@@ -257,14 +257,17 @@ export class TransformationEngine {
           }
         });
         
-        // Add any remaining attributes not in the custom order (new attributes)
+        // Add any remaining attributes not in the custom order (e.g., newly added attributes from transformations)
+        // These should be added at the top since they're new
+        const newAttributes: DisplayAttribute[] = [];
         section.attributes.forEach(attr => {
           if (!orderedIds.has(attr.id)) {
-            reordered.push(attr);
+            newAttributes.push(attr);
           }
         });
         
-        section.attributes = reordered;
+        // Put new attributes at the beginning (they appear first in OUTPUT)
+        section.attributes = [...newAttributes, ...reordered];
       }
     });
   }
