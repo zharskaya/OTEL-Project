@@ -73,6 +73,7 @@ export function SubstringAttributeForm({
 
   const handleClickOutside = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
+      // Click outside: save if key is not empty, cancel if empty
       if (newKey.trim() === '') {
         onCancel();
       } else {
