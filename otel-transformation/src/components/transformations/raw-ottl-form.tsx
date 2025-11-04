@@ -22,36 +22,15 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
   }, []);
 
   const handleSave = () => {
-    const trimmed = input.trim();
+    const statement = input.trim();
     
-    if (!trimmed) {
+    if (!statement) {
       alert('Cannot add attribute. Key cannot be empty');
       return;
     }
 
-    // Parse input with separators: "=", " ", ",", ":", ";" and sequential combinations
-    // Rule 1: Split by any of these separators (including sequential combinations)
-    const separatorRegex = /[=\s,:;]+/;
-    const tokens = trimmed.split(separatorRegex).filter(t => t.length > 0);
-    
-    let key: string;
-    let value: string;
-    
-    if (tokens.length === 0) {
-      // Empty after splitting (shouldn't happen due to trim check above)
-      alert('Cannot add attribute. Key cannot be empty');
-      return;
-    } else if (tokens.length === 1) {
-      // Rule 3: Only one string -> use as key, value is empty string
-      key = tokens[0];
-      value = '';
-    } else {
-      // Rule 2: 2+ strings -> first is key, second is value (ignore rest)
-      key = tokens[0];
-      value = tokens[1];
-    }
-
-    // Create raw OTTL transformation (stored as key-value)
+    // Raw OTTL: display exactly what user enters (no parsing)
+    // Create raw OTTL transformation
     addTransformation({
       id: `t-${Date.now()}`,
       type: TransformationType.RAW_OTTL,
@@ -61,9 +40,7 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
       status: TransformationStatus.ACTIVE,
       params: {
         type: TransformationType.RAW_OTTL,
-        statement: trimmed, // Keep original for display
-        key,
-        value,
+        statement,
         insertionPoint: sectionId,
       },
     });
@@ -102,7 +79,7 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Enter key=value or key:value or key value"
+        placeholder="Enter OTTL statement"
         className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 font-mono text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
       />
       <button

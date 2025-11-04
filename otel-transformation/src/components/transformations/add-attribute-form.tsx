@@ -33,49 +33,26 @@ export function AddAttributeForm({
       return;
     }
 
-    // Parse input with separators: "=", ",", " " (space)
-    // Rule 1: Use these separators to split key and value
-    // Rule 3: If multiple separators, ignore everything after second separator
-    
-    // Find the first separator
-    const separators = ['=', ',', ' '];
-    let firstSepIndex = -1;
-    
-    for (const sep of separators) {
-      const index = trimmed.indexOf(sep);
-      if (index !== -1 && (firstSepIndex === -1 || index < firstSepIndex)) {
-        firstSepIndex = index;
-      }
-    }
+    // Parse input with separators: "=", " ", ",", ":", ";" and sequential combinations
+    // Rule 1: Split by any of these separators (including sequential combinations)
+    const separatorRegex = /[=\s,:;]+/;
+    const tokens = trimmed.split(separatorRegex).filter(t => t.length > 0);
     
     let key: string;
     let value: string;
     
-    if (firstSepIndex === -1) {
-      // Rule 2: No separator -> entire input is key, value is empty string
-      key = trimmed;
+    if (tokens.length === 0) {
+      // Empty after splitting
+      alert('Cannot add attribute. Key cannot be empty');
+      return;
+    } else if (tokens.length === 1) {
+      // Rule 3: Only one string -> use as key, value is empty string
+      key = tokens[0];
       value = '';
     } else {
-      // Split at first separator
-      key = trimmed.substring(0, firstSepIndex).trim();
-      const afterFirst = trimmed.substring(firstSepIndex + 1);
-      
-      // Rule 3: Check for second separator
-      let secondSepIndex = -1;
-      for (const sep of separators) {
-        const index = afterFirst.indexOf(sep);
-        if (index !== -1 && (secondSepIndex === -1 || index < secondSepIndex)) {
-          secondSepIndex = index;
-        }
-      }
-      
-      if (secondSepIndex === -1) {
-        // No second separator
-        value = afterFirst.trim();
-      } else {
-        // Ignore everything after second separator
-        value = afterFirst.substring(0, secondSepIndex).trim();
-      }
+      // Rule 2: 2+ strings -> first is key, second is value (ignore rest)
+      key = tokens[0];
+      value = tokens[1];
     }
     
     // Validate key is not empty
@@ -134,7 +111,7 @@ export function AddAttributeForm({
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Enter key=value or key,value or key value"
+        placeholder="Enter key=value or key:value or key,value"
         className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 font-mono text-xs text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 leading-tight"
       />
       <button
