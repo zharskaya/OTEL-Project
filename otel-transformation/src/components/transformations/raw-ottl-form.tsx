@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { SquareTerminal } from 'lucide-react';
 import { useTransformationActions } from '@/lib/state/hooks';
 import { TransformationType, TransformationStatus } from '@/types/transformation-types';
 
@@ -70,6 +71,7 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
       className="flex items-center gap-1 border-b border-gray-100 bg-gray-200 px-4 py-2"
       onClick={handleClickOutside}
     >
+      <SquareTerminal className="h-4 w-4 text-gray-600 flex-shrink-0" />
       <input
         ref={inputRef}
         type="text"
