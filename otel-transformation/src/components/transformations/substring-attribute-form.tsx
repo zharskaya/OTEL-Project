@@ -25,12 +25,31 @@ export function SubstringAttributeForm({
 }: SubstringAttributeFormProps) {
   const [newKey, setNewKey] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const { addTransformation } = useTransformationActions();
 
   // Focus on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Handle clicks outside the form
+  useEffect(() => {
+    const handleClickOutsideForm = (event: MouseEvent) => {
+      if (formRef.current && !formRef.current.contains(event.target as Node)) {
+        // Clicked outside the form - cancel
+        onCancel();
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutsideForm);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideForm);
+    };
+  }, [onCancel]);
 
   const handleSave = () => {
     const trimmed = newKey.trim();
@@ -71,19 +90,12 @@ export function SubstringAttributeForm({
     }
   };
 
-  const handleClickOutside = (e: React.MouseEvent) => {
-    // Click outside always cancels
-    if (e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
-
   const range = substringEnd === 'end' ? `${substringStart}..end` : `${substringStart}..${substringEnd}`;
 
   return (
     <div
+      ref={formRef}
       className="relative flex items-center gap-2 border-b border-gray-100 bg-gray-200 px-4 py-2"
-      onClick={handleClickOutside}
     >
       {/* Key field (editable) */}
       <input
@@ -104,20 +116,14 @@ export function SubstringAttributeForm({
       {/* Buttons overlaying value area */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
         <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent click from bubbling to parent
-            handleSave();
-          }}
+          onClick={handleSave}
           className="rounded-md px-2 py-1.5 bg-gray-900 text-white text-xs whitespace-nowrap transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
           title="Save (Enter)"
         >
           Save ↵
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent click from bubbling to parent
-            onCancel();
-          }}
+          onClick={onCancel}
           className="rounded-md px-2 py-1.5 bg-white text-gray-700 text-xs border border-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
           title="Cancel (Esc)"
         >
