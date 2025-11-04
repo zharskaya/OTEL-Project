@@ -78,14 +78,14 @@ export function TreeSection({ section }: TreeSectionProps) {
       .map(t => {
         const params = t.params as any;
         
-        // For raw OTTL, display the statement as both key and value
+        // For raw OTTL, use parsed key and value
         if (t.type === 'raw-ottl') {
           return {
             id: `added-${t.id}`,
             path: `${params.insertionPoint}.ottl-${t.id}`,
             sectionId: section.id,
-            key: 'OTTL',
-            value: params.statement,
+            key: params.key || 'OTTL', // Use parsed key
+            value: params.value || params.statement || '', // Use parsed value or fallback to statement
             valueType: ValueType.STRING,
             depth: 0,
             isRawOTTL: true, // Mark as raw OTTL for special rendering
