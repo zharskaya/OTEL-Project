@@ -27,13 +27,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm install
-        working-directory: ./otel-transformation
 
       - name: Build Next.js
-        run: npm run build
-        working-directory: ./otel-transformation
+        run: npm run build --workspace=otel-transformation
         env:
           NODE_ENV: production
 
