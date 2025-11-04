@@ -34,20 +34,28 @@ export function useTextSelection(ref: RefObject<HTMLElement | null>) {
         if (selectedText.length > 0) {
           let fullText = ref.current.textContent || '';
           
-          // Calculate positions for both start and end
-          const beforeStartRange = range.cloneRange();
-          beforeStartRange.selectNodeContents(ref.current);
-          beforeStartRange.setEnd(range.startContainer, range.startOffset);
-          const startPos = beforeStartRange.toString().length;
+          // Use anchor and focus to determine actual selection direction
+          // anchor = where selection started, focus = where it currently is
+          const anchorNode = sel.anchorNode;
+          const anchorOffset = sel.anchorOffset;
+          const focusNode = sel.focusNode;
+          const focusOffset = sel.focusOffset;
           
-          const beforeEndRange = range.cloneRange();
-          beforeEndRange.selectNodeContents(ref.current);
-          beforeEndRange.setEnd(range.endContainer, range.endOffset);
-          const endPos = beforeEndRange.toString().length;
+          // Calculate anchor position
+          const beforeAnchorRange = document.createRange();
+          beforeAnchorRange.selectNodeContents(ref.current);
+          beforeAnchorRange.setEnd(anchorNode!, anchorOffset);
+          const anchorPos = beforeAnchorRange.toString().length;
           
-          // Ensure start is always less than end (handle backwards selection)
-          let start = Math.min(startPos, endPos);
-          let end = Math.max(startPos, endPos);
+          // Calculate focus position
+          const beforeFocusRange = document.createRange();
+          beforeFocusRange.selectNodeContents(ref.current);
+          beforeFocusRange.setEnd(focusNode!, focusOffset);
+          const focusPos = beforeFocusRange.toString().length;
+          
+          // Normalize: start is always the smaller position, end is always the larger
+          let start = Math.min(anchorPos, focusPos);
+          let end = Math.max(anchorPos, focusPos);
 
           // Check if fullText is wrapped in quotes (e.g., "MyService")
           // If so, adjust positions to exclude quotes
