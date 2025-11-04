@@ -216,7 +216,7 @@ export class TransformationEngine {
     transformations: Transformation[]
   ): void {
     // Apply modifications to each section's attributes
-    // No sorting - keep attributes in their original positions to match INPUT
+    // Keep all attributes in their original positions to match INPUT panel
     tree.sections.forEach(section => {
       section.attributes.forEach(attribute => {
         const modKey = `${section.id}:${attribute.key}`;
@@ -224,6 +224,9 @@ export class TransformationEngine {
           attribute.modifications = modifications.get(modKey)!;
         }
       });
+      
+      // No sorting - attributes stay in their original positions
+      // This ensures OUTPUT matches INPUT layout
     });
   }
 }
