@@ -49,18 +49,18 @@ export function OutputPanel({
             </p>
           </div>
         ) : (
-          <>
-            {/* Info message when changes are made */}
-            {hasChanges && (
-              <div className="sticky top-0 z-10 border-b border-blue-200 bg-blue-50 px-4 py-2 text-xs text-blue-800">
-                Change made. Run (⌘ + Enter) to preview updates.
-              </div>
-            )}
-            {/* Output content with reduced opacity when changes exist */}
-            <div className={`p-4 ${hasChanges ? 'opacity-60' : ''}`}>
-              {children}
-            </div>
-          </>
+              <>
+                {/* Info message when changes are made */}
+                {hasChanges && (
+                  <div className="sticky top-0 z-10 border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-800 font-medium">
+                    Change made. Run (⌘ + Enter) to preview updates.
+                  </div>
+                )}
+                {/* Output content with reduced opacity when changes exist */}
+                <div className={`p-4 ${hasChanges ? 'opacity-60' : ''}`}>
+                  {children}
+                </div>
+              </>
         )}
       </div>
     </div>
