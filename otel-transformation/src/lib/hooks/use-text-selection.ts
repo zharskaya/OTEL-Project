@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, RefObject } from 'react';
+import { useState, useEffect, RefObject, useRef } from 'react';
 
 export interface TextSelection {
   text: string;
@@ -14,89 +14,89 @@ export interface TextSelection {
  */
 export function useTextSelection(ref: RefObject<HTMLElement | null>) {
   const [selection, setSelection] = useState<TextSelection | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleSelectionChange = () => {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) {
-        setSelection(null);
-        return;
+      // Debounce selection changes to avoid interfering with keyboard selection
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
 
-      const range = sel.getRangeAt(0);
-      const selectedText = sel.toString().trim();
+      timeoutRef.current = setTimeout(() => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+          setSelection(null);
+          return;
+        }
 
-      // Check if selection is within our element
-      if (
-        ref.current &&
-        ref.current.contains(range.commonAncestorContainer)
-      ) {
-        if (selectedText.length > 0) {
-          let fullText = ref.current.textContent || '';
-          
-          // Use anchor and focus to determine actual selection direction
-          // anchor = where selection started, focus = where it currently is
-          const anchorNode = sel.anchorNode;
-          const anchorOffset = sel.anchorOffset;
-          const focusNode = sel.focusNode;
-          const focusOffset = sel.focusOffset;
-          
-          // Calculate anchor position
-          const beforeAnchorRange = document.createRange();
-          beforeAnchorRange.selectNodeContents(ref.current);
-          beforeAnchorRange.setEnd(anchorNode!, anchorOffset);
-          const anchorPos = beforeAnchorRange.toString().length;
-          
-          // Calculate focus position
-          const beforeFocusRange = document.createRange();
-          beforeFocusRange.selectNodeContents(ref.current);
-          beforeFocusRange.setEnd(focusNode!, focusOffset);
-          const focusPos = beforeFocusRange.toString().length;
-          
-          // Normalize: start is always the smaller position, end is always the larger
-          let start = Math.min(anchorPos, focusPos);
-          let end = Math.max(anchorPos, focusPos);
-          
-          // Debug logging
-          console.log('Selection Debug:', {
-            selectedText,
-            anchorPos,
-            focusPos,
-            start,
-            end,
-            direction: anchorPos <= focusPos ? 'forward' : 'backward',
-            fullText: fullText.substring(0, 50)
-          });
+        const range = sel.getRangeAt(0);
+        const selectedText = sel.toString().trim();
 
-          // Check if fullText is wrapped in quotes (e.g., "MyService")
-          // If so, adjust positions to exclude quotes
-          if (fullText.startsWith('"') && fullText.endsWith('"') && fullText.length > 2) {
-            // Strip quotes from fullText
-            fullText = fullText.slice(1, -1);
-            // Adjust start and end positions (subtract 1 to account for opening quote)
-            start = Math.max(0, start - 1);
-            end = Math.max(0, end - 1);
-            // Cap end at fullText length (in case full string with both quotes was selected)
-            end = Math.min(end, fullText.length);
+        // Check if selection is within our element
+        if (
+          ref.current &&
+          ref.current.contains(range.commonAncestorContainer)
+        ) {
+          if (selectedText.length > 0) {
+            let fullText = ref.current.textContent || '';
+            
+            // Use anchor and focus to determine actual selection direction
+            // anchor = where selection started, focus = where it currently is
+            const anchorNode = sel.anchorNode;
+            const anchorOffset = sel.anchorOffset;
+            const focusNode = sel.focusNode;
+            const focusOffset = sel.focusOffset;
+            
+            // Calculate anchor position
+            const beforeAnchorRange = document.createRange();
+            beforeAnchorRange.selectNodeContents(ref.current);
+            beforeAnchorRange.setEnd(anchorNode!, anchorOffset);
+            const anchorPos = beforeAnchorRange.toString().length;
+            
+            // Calculate focus position
+            const beforeFocusRange = document.createRange();
+            beforeFocusRange.selectNodeContents(ref.current);
+            beforeFocusRange.setEnd(focusNode!, focusOffset);
+            const focusPos = beforeFocusRange.toString().length;
+            
+            // Normalize: start is always the smaller position, end is always the larger
+            let start = Math.min(anchorPos, focusPos);
+            let end = Math.max(anchorPos, focusPos);
+
+            // Check if fullText is wrapped in quotes (e.g., "MyService")
+            // If so, adjust positions to exclude quotes
+            if (fullText.startsWith('"') && fullText.endsWith('"') && fullText.length > 2) {
+              // Strip quotes from fullText
+              fullText = fullText.slice(1, -1);
+              // Adjust start and end positions (subtract 1 to account for opening quote)
+              start = Math.max(0, start - 1);
+              end = Math.max(0, end - 1);
+              // Cap end at fullText length (in case full string with both quotes was selected)
+              end = Math.min(end, fullText.length);
+            }
+
+            setSelection({
+              text: selectedText,
+              start,
+              end,
+              fullText,
+            });
+          } else {
+            setSelection(null);
           }
-
-          setSelection({
-            text: selectedText,
-            start,
-            end,
-            fullText,
-          });
         } else {
           setSelection(null);
         }
-      } else {
-        setSelection(null);
-      }
+      }, 150); // Wait 150ms after last selection change
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, [ref]);
 
