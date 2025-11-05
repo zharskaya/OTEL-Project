@@ -95,7 +95,8 @@ export const useTransformationStore = create<TransformationStore>(
     setAttributeOrder: (sectionId, order) =>
       set((state) => {
         const newOrder = new Map(state.attributeOrder);
-        newOrder.set(sectionId, order);
+        // Ensure we always store a new array reference to trigger subscriptions
+        newOrder.set(sectionId, [...order]);
         return { attributeOrder: newOrder };
       }),
 

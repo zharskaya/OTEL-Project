@@ -39,7 +39,10 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
   const [visualOrder, setVisualOrder] = useState<string[]>([]);
 
   const transformations = useTransformations();
-  const { reorderTransformations, setAttributeOrder } = useTransformationActions();
+  const { setAttributeOrder } = useTransformationActions();
+
+  // Subscribe to stored order changes for this section (for same-section reordering)
+  const storedAttributeOrder = useTransformationStore((state) => state.attributeOrder.get(section.id));
 
   // Get transformations for this section to create sortable IDs
   const sectionTransformations = transformations.filter(t => t.sectionId === section.id);
@@ -147,80 +150,85 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
     return result;
   }, [addedAttributes, section.attributes]);
   
-  // Update visual order when base attributes change
+  // Initialize stored order if it doesn't exist (only runs once per section, ever)
+  const hasInitialized = React.useRef(false);
+  const isInitializing = React.useRef(false);
+  
+  React.useEffect(() => {
+    // Only initialize once, and only if not currently initializing
+    if (hasInitialized.current || isInitializing.current) return;
+    if (baseAttributes.length === 0) return;
+
+    isInitializing.current = true;
+    const currentStoredOrder = useTransformationStore.getState().attributeOrder.get(section.id);
+
+    if (!currentStoredOrder || currentStoredOrder.length === 0) {
+      const keyOrder = baseAttributes.map(a => a.key);
+      setAttributeOrder(section.id, keyOrder);
+    }
+
+    hasInitialized.current = true;
+    isInitializing.current = false;
+  }, [baseAttributes, section.id, setAttributeOrder]);
+  
+  // Update visual order when base attributes change OR stored order changes
   React.useEffect(() => {
     const newIds = baseAttributes.map(a => a.id);
-    const newIdsStr = newIds.join(',');
-    
+    const keyToId = new Map(baseAttributes.map(a => [a.key, a.id]));
+
     setVisualOrder(prev => {
-      const prevStr = prev.join(',');
-      
-      // If nothing changed, return previous state to avoid re-render
-      if (prevStr === newIdsStr) {
-        return prev;
-      }
-      
-      // Find what's new and what's removed
-      const prevSet = new Set(prev);
-      const newIdsSet = new Set(newIds);
-      const added = newIds.filter(id => !prevSet.has(id));
-      const removed = prev.filter(id => !newIdsSet.has(id));
-      
-      // If no changes, keep existing order
-      if (added.length === 0 && removed.length === 0) {
-        return prev;
-      }
-      
-      // Check if there's a pre-set order in the store (from cross-section drag)
-      const storedOrder = useTransformationStore.getState().attributeOrder.get(section.id);
-      const keyToId = new Map(baseAttributes.map(a => [a.key, a.id]));
-      
-      if (storedOrder && added.length > 0) {
-        // Use stored order to position new attributes
-        const result: string[] = [];
-        for (const key of storedOrder) {
+      let nextOrder: string[] | null = null;
+
+      if (storedAttributeOrder && storedAttributeOrder.length > 0) {
+        const mapped: string[] = [];
+        const newIdsSet = new Set(newIds);
+
+        for (const key of storedAttributeOrder) {
           const id = keyToId.get(key);
           if (id && newIdsSet.has(id)) {
-            result.push(id);
+            mapped.push(id);
           }
         }
-        // Add any attributes not in stored order (shouldn't happen, but just in case)
+
         for (const id of newIds) {
-          if (!result.includes(id)) {
-            result.push(id);
+          if (!mapped.includes(id)) {
+            mapped.push(id);
           }
         }
-        return result;
-      }
-      
-      // Default behavior: Use baseAttributes order directly when there are new items
-      // This respects the positioning logic in baseAttributes:
-      // - Static/OTTL attributes at top
-      // - Substring attributes above their source
-      // - Original attributes in original positions
-      const result: string[] = [];
-      const addedSet = new Set(added);
-      
-      for (const id of newIds) {
-        if (addedSet.has(id)) {
-          // New attribute - add in its natural position from baseAttributes
-          result.push(id);
-        } else if (prev.includes(id)) {
-          // Existing attribute - only add if we haven't added it yet
-          if (!result.includes(id)) {
-            result.push(id);
+
+        nextOrder = mapped;
+      } else {
+        // No stored order yet – follow baseAttributes order directly
+        const prevSet = new Set(prev);
+        const newSet = new Set(newIds);
+        const added = newIds.filter(id => !prevSet.has(id));
+        const removed = prev.filter(id => !newSet.has(id));
+
+        if (prev.length > 0 && added.length === 0 && removed.length === 0) {
+          return prev;
+        }
+
+        nextOrder = [];
+        for (const id of newIds) {
+          if (!nextOrder.includes(id)) {
+            nextOrder.push(id);
           }
         }
       }
-      
-      // Save order to store by KEYS (not IDs) so OUTPUT can match them
-      const idToKey = new Map(baseAttributes.map(a => [a.id, a.key]));
-      const keyOrder = result.map(id => idToKey.get(id)).filter((k): k is string => k !== undefined);
-      setAttributeOrder(section.id, keyOrder);
-      
-      return result;
+
+      if (!nextOrder) {
+        return prev;
+      }
+
+      const prevStr = prev.join(',');
+      const nextStr = nextOrder.join(',');
+      if (prevStr === nextStr) {
+        return prev;
+      }
+
+      return nextOrder;
     });
-  }, [baseAttributes, section.id, setAttributeOrder]);
+  }, [baseAttributes, storedAttributeOrder]);
   
   // Sort attributes by visual order
   const allAttributes = React.useMemo(() => {
@@ -368,4 +376,5 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
     </div>
   );
 }
+
 

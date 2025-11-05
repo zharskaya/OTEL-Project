@@ -13,6 +13,7 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { TelemetryTree as TelemetryTreeType, DisplayAttribute } from '@/types/telemetry-types';
 import { TreeSection } from './tree-section';
 import { AttributeRow } from './attribute-row';
@@ -111,13 +112,22 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
       
       // Get current order of destination section attributes (read from store without subscribing)
       const attributeOrder = useTransformationStore.getState().attributeOrder;
-      const destSectionOrder = attributeOrder.get(overInfo.sectionId) || destSection.attributes.map(a => a.key);
+      const sourceSectionOrder = attributeOrder.get(activeInfo.sectionId);
+      const destSectionOrder = attributeOrder.get(overInfo.sectionId)
+        ? [...(attributeOrder.get(overInfo.sectionId) as string[])]
+        : destSection.attributes.map(a => a.key);
       
       // Find the index where we should insert
-      let insertIndex = 0;
+      // Remove the key if it already exists in the destination order (should not happen but keeps things safe)
+      const existingIndex = destSectionOrder.indexOf(draggedAttr.key);
+      if (existingIndex !== -1) {
+        destSectionOrder.splice(existingIndex, 1);
+      }
+
+      let insertIndex = destSectionOrder.length;
       if (dropTargetAttr) {
         insertIndex = destSectionOrder.indexOf(dropTargetAttr.key);
-        if (insertIndex === -1) insertIndex = 0;
+        if (insertIndex === -1) insertIndex = destSectionOrder.length;
       }
       
       // Create new order with the dragged attribute inserted at the drop position
@@ -157,8 +167,42 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
       
       // Update the visual order to place the attribute at the drop position
       setAttributeOrder(overInfo.sectionId, newOrder);
+
+      if (sourceSectionOrder) {
+        const updatedSourceOrder = sourceSectionOrder.filter(key => key !== draggedAttr.key);
+        if (updatedSourceOrder.length !== sourceSectionOrder.length) {
+          setAttributeOrder(activeInfo.sectionId, updatedSourceOrder);
+        }
+      }
+    } else {
+      // Same section reordering
+      const attributeOrder = useTransformationStore.getState().attributeOrder;
+      const currentOrder = attributeOrder.get(activeInfo.sectionId)
+        ? [...(attributeOrder.get(activeInfo.sectionId) as string[])]
+        : undefined;
+
+      if (!currentOrder || currentOrder.length === 0) {
+        // TreeSection will initialize and we can try again after state settles
+        return;
+      }
+
+      const activeSortable = (active.data.current as any)?.sortable;
+      const overSortable = (over.data.current as any)?.sortable;
+      const fromIndex = typeof activeSortable?.index === 'number' ? activeSortable.index : -1;
+      const toIndex = typeof overSortable?.index === 'number' ? overSortable.index : -1;
+
+      if (fromIndex === -1 || toIndex === -1) {
+        return;
+      }
+
+      const newOrder = arrayMove(currentOrder, fromIndex, toIndex);
+
+      if (newOrder.join(',') === currentOrder.join(',')) {
+        return;
+      }
+
+      setAttributeOrder(activeInfo.sectionId, newOrder);
     }
-    // If same section, let the TreeSection handle it (reordering)
   };
 
   return (
