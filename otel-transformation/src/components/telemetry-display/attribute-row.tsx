@@ -351,7 +351,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
     const maskChar = params.maskChar || '*';
 
     const before = rawValue.substring(0, start);
-    const masked = maskChar.repeat(end - start);
+    const masked = maskChar.repeat(5);
     const after = rawValue.substring(end);
 
     const maskedValue = before + masked + after;
