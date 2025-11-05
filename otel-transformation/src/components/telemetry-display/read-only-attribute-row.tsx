@@ -31,7 +31,7 @@ export function ReadOnlyAttributeRow({ attribute }: ReadOnlyAttributeRowProps) {
 
   return (
     <div
-      className={`flex items-center py-1.5 mb-0.5 transition-colors hover:bg-gray-200 leading-none ${getBackgroundClass()}`}
+      className={`flex items-center py-1.5 mb-0.5 transition-colors hover:bg-gray-200 leading-none select-none ${getBackgroundClass()}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -39,7 +39,7 @@ export function ReadOnlyAttributeRow({ attribute }: ReadOnlyAttributeRowProps) {
       <div className="w-[360px] flex-shrink-0 flex items-center pr-4 leading-none">
         <div style={{ paddingLeft: `${40 + attribute.depth * 16}px` }} className="flex items-center gap-3 leading-none">
           <div className="flex-1 min-w-0 leading-none">
-            <span className="font-mono text-xs text-gray-900 leading-none">
+            <span className="font-mono text-xs text-gray-900 leading-none select-none">
               {attribute.key}
             </span>
           </div>
@@ -47,11 +47,11 @@ export function ReadOnlyAttributeRow({ attribute }: ReadOnlyAttributeRowProps) {
       </div>
 
       {/* Value - always starts at the same position */}
-      <div className="flex-1 min-w-0 leading-none">
+      <div className="flex-1 min-w-0 leading-none select-none">
         <SyntaxHighlighter
           value={attribute.value}
           valueType={attribute.valueType}
-          className="font-mono text-xs leading-none"
+          className="font-mono text-xs leading-none select-none"
         />
       </div>
     </div>

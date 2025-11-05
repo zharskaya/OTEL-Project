@@ -14,7 +14,7 @@ import {
 import { useTransformationActions, useTransformations } from '@/lib/state/hooks';
 import { TransformationType, TransformationStatus } from '@/types/transformation-types';
 import { SyntaxHighlighter } from './syntax-highlighter';
-import { useTextSelection } from '@/lib/hooks/use-text-selection';
+import { useTextSelection, TextSelection } from '@/lib/hooks/use-text-selection';
 import { MaskValueSelector } from '@/components/transformations/mask-value-selector';
 import { RenameKeyForm } from '@/components/transformations/rename-key-form';
 
@@ -37,12 +37,15 @@ interface AttributeRowProps {
 export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, forceDeleted = false, movedKeys = new Set<string>(), onRequestSubstring }: AttributeRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isValueHovered, setIsValueHovered] = useState(false);
-  const [showMaskSelector, setShowMaskSelector] = useState(false);
+  const [isKeyHovered, setIsKeyHovered] = useState(false);
+  const [hoverSelection, setHoverSelection] = useState<TextSelection | null>(null);
   const [selectorPosition, setSelectorPosition] = useState({ x: 0, y: 0 });
   const [isRenaming, setIsRenaming] = useState(false);
   const [isEditingOTTL, setIsEditingOTTL] = useState(false);
   const [ottlStatement, setOttlStatement] = useState('');
+  const valueContainerRef = useRef<HTMLDivElement>(null);
   const valueRef = useRef<HTMLSpanElement>(null);
+  const hoverHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ottlInputRef = useRef<HTMLInputElement>(null);
   const { selection, clearSelection } = useTextSelection(valueRef);
   const { addTransformation, removeTransformation, updateTransformation } = useTransformationActions();
@@ -104,26 +107,59 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
       attribute.modifications.some(m => m.transformationId === t.id)
     ) : null;
 
-  // Show mask selector when text is selected
-  React.useEffect(() => {
-    if (selection && !isDeleted && !isMasked && !isRenamed) {
-      // Only set position and show selector if not already showing
-      if (!showMaskSelector) {
-        const range = window.getSelection()?.getRangeAt(0);
-        if (range) {
-          const rect = range.getBoundingClientRect();
-          setSelectorPosition({
-            x: rect.left + rect.width / 2,
-            y: rect.top,
-          });
-        }
-        // Set show flag in a separate effect to avoid re-triggering
-        setShowMaskSelector(true);
-      }
-    } else {
-      setShowMaskSelector(false);
+  const cancelHoverHide = () => {
+    if (hoverHideTimeoutRef.current) {
+      clearTimeout(hoverHideTimeoutRef.current);
+      hoverHideTimeoutRef.current = null;
     }
-  }, [selection, isDeleted, isMasked, isRenamed, showMaskSelector]);
+  };
+
+  const scheduleHoverHide = () => {
+    if (!hoverSelection) {
+      return;
+    }
+    cancelHoverHide();
+    hoverHideTimeoutRef.current = setTimeout(() => {
+      setHoverSelection(null);
+      hoverHideTimeoutRef.current = null;
+    }, 150);
+  };
+
+  const getFullValueText = () => {
+    if (attribute.value == null) {
+      return '';
+    }
+
+    if (attribute.valueType === ValueType.STRING && typeof attribute.value === 'string') {
+      if (attribute.value.startsWith('"') && attribute.value.endsWith('"') && attribute.value.length >= 2) {
+        return attribute.value.slice(1, -1);
+      }
+      return attribute.value;
+    }
+
+    return String(attribute.value);
+  };
+
+  React.useEffect(() => {
+    if (!selection || isDeleted || isMasked || isRenamed) {
+      return;
+    }
+
+    const windowSelection = window.getSelection();
+    if (windowSelection && windowSelection.rangeCount > 0) {
+      const range = windowSelection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setSelectorPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+      });
+    }
+
+    setHoverSelection(null);
+    cancelHoverHide();
+  }, [selection, isDeleted, isMasked, isRenamed]);
+
+  React.useEffect(() => () => cancelHoverHide(), []);
 
   const handleDelete = () => {
     addTransformation({
@@ -157,7 +193,8 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   const handleMask = () => {
-    if (!selection) return;
+    const activeSelection = selection ?? hoverSelection;
+    if (!activeSelection) return;
 
     addTransformation({
       id: `t-${Date.now()}`,
@@ -170,28 +207,26 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         type: TransformationType.MASK,
         attributePath: attribute.path,
         attributeKey: attribute.key,
-        maskStart: selection.start,
-        maskEnd: selection.end,
+        maskStart: activeSelection.start,
+        maskEnd: activeSelection.end,
         maskChar: '*',
       },
     });
-    clearSelection();
   };
 
   const handleNewAttribute = () => {
-    if (!selection) return;
+    const activeSelection = selection ?? hoverSelection;
+    if (!activeSelection) return;
 
-    // Request substring form from parent
     if (onRequestSubstring) {
       onRequestSubstring({
         sourceKey: attribute.key,
         sourcePath: attribute.path,
         sectionId: attribute.sectionId,
-        substringStart: selection.start,
-        substringEnd: selection.end,
+        substringStart: activeSelection.start,
+        substringEnd: activeSelection.end,
       });
     }
-    clearSelection();
   };
 
   const handleEditOTTL = () => {
@@ -246,13 +281,42 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   const handleValueMouseEnter = () => {
-    if (isDeleted || isMasked || isRenamed) return;
-    // Just set hover state - don't auto-select
+    if (isDeleted || isMasked || isRenamed) {
+      setIsValueHovered(true);
+      return;
+    }
+
     setIsValueHovered(true);
+    cancelHoverHide();
+
+    if (!selection) {
+      const fullText = getFullValueText();
+      if (fullText.length > 0) {
+        setHoverSelection({
+          text: fullText,
+          start: 0,
+          end: fullText.length,
+          fullText,
+        });
+        const rectSource = valueRef.current?.getBoundingClientRect() ?? valueContainerRef.current?.getBoundingClientRect();
+        if (rectSource) {
+          setSelectorPosition({
+            x: rectSource.left + rectSource.width / 2,
+            y: rectSource.top,
+          });
+        }
+      } else {
+        setHoverSelection(null);
+      }
+    }
   };
 
   const handleValueMouseLeave = () => {
     setIsValueHovered(false);
+    if (selection) {
+      return;
+    }
+    scheduleHoverHide();
   };
 
   const getModificationLabel = () => {
@@ -367,6 +431,9 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
     opacity: isDragging ? 0.4 : 1,
   };
 
+  const activeSelection = selection ?? hoverSelection;
+  const shouldShowMaskSelector = !!activeSelection && !isDeleted && !isMasked && !isRenamed;
+
   return (
     <>
       {/* Drop indicator line */}
@@ -474,7 +541,11 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         <div className="w-[360px] flex-shrink-0 flex items-center pr-4 leading-none">
           <div style={{ paddingLeft: `${40 + attribute.depth * 16}px` }} className="flex items-center gap-3 leading-none">
             {/* Key text */}
-            <div className="flex-1 min-w-0 leading-none">
+            <div
+              className={`flex-1 min-w-0 leading-none ${isKeyHovered && !isRenaming ? 'bg-gray-400' : ''}`}
+              onMouseEnter={() => !isRenaming && setIsKeyHovered(true)}
+              onMouseLeave={() => setIsKeyHovered(false)}
+            >
           {isRenaming ? (
             <RenameKeyForm
               oldKey={attribute.key}
@@ -516,72 +587,63 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         </div>
 
         {/* Value - always starts at the same position */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex-1 min-w-0 cursor-text leading-none">
-                {isMasked ? (
-                  <span className="flex flex-col gap-1 leading-none">
-                    <span className="font-mono text-xs text-emerald-600 leading-none">
-                      {getMaskedValue()}
+        <div
+          ref={valueContainerRef}
+          className={`flex-1 min-w-0 cursor-text leading-none ${isValueHovered ? 'bg-gray-400' : ''}`}
+          onMouseEnter={handleValueMouseEnter}
+          onMouseLeave={handleValueMouseLeave}
+        >
+          {isMasked ? (
+            <span className="flex flex-col gap-1 leading-none">
+              <span className="font-mono text-xs text-emerald-600 leading-none">
+                {getMaskedValue()}
+              </span>
+              <span className="font-mono text-[10px] text-gray-400 line-through leading-none">
+                {attribute.value}
+              </span>
+            </span>
+          ) : isDeleted ? (
+            <span className={`font-mono text-xs ${getTextClass()} leading-none`}>
+              {attribute.value}
+            </span>
+          ) : attribute.modifications.some(m => m.type === 'add-substring') ? (
+            <span className="flex flex-col gap-1 leading-none">
+              <SyntaxHighlighter
+                value={attribute.value}
+                valueType={attribute.valueType}
+                className={`font-mono text-xs ${getTextClass()} leading-none`}
+              />
+              {(() => {
+                const substringTransformation = transformations.find(
+                  t => t.type === 'add-substring' && 
+                  (t.params as any).newKey === attribute.key &&
+                  t.sectionId === attribute.sectionId
+                );
+                if (substringTransformation) {
+                  const params = substringTransformation.params as any;
+                  const endValue = params.substringEnd === 'end' ? 'end' : params.substringEnd;
+                  return (
+                    <span className="font-mono text-[10px] text-gray-400 leading-none">
+                      SUBSTR({params.sourceKey}, {params.substringStart}–{endValue})
                     </span>
-                    <span className="font-mono text-[10px] text-gray-400 line-through leading-none">
-                      {attribute.value}
-                    </span>
-                  </span>
-                ) : isDeleted ? (
-                  <span className={`font-mono text-xs ${getTextClass()} leading-none`}>
-                    {attribute.value}
-                  </span>
-                ) : attribute.modifications.some(m => m.type === 'add-substring') ? (
-                  <span className="flex flex-col gap-1 leading-none">
-                    <SyntaxHighlighter
-                      value={attribute.value}
-                      valueType={attribute.valueType}
-                      className={`font-mono text-xs ${getTextClass()} leading-none`}
-                    />
-                    {(() => {
-                      const substringTransformation = transformations.find(
-                        t => t.type === 'add-substring' && 
-                        (t.params as any).newKey === attribute.key &&
-                        t.sectionId === attribute.sectionId
-                      );
-                      if (substringTransformation) {
-                        const params = substringTransformation.params as any;
-                        const endValue = params.substringEnd === 'end' ? 'end' : params.substringEnd;
-                        return (
-                          <span className="font-mono text-[10px] text-gray-400 leading-none">
-                            Substr({params.sourceKey}, {params.substringStart}–{endValue})
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </span>
-                ) : (
-                  <span 
-                    ref={valueRef} 
-                    className="leading-none"
-                    onMouseEnter={handleValueMouseEnter}
-                    onMouseLeave={handleValueMouseLeave}
-                  >
-                    <SyntaxHighlighter
-                      value={attribute.value}
-                      valueType={attribute.valueType}
-                      className={`font-mono text-xs ${getTextClass()} leading-none`}
-                    />
-                  </span>
-                )}
-              </div>
-            </TooltipTrigger>
-            {/* Show "Select to transform" tooltip on hover, hide when mask selector is active */}
-            {isHovered && !isDeleted && !isMasked && !showMaskSelector && (
-              <TooltipContent>
-                <p>Select to transform</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+                  );
+                }
+                return null;
+              })()}
+            </span>
+          ) : (
+            <span 
+              ref={valueRef} 
+              className="leading-none"
+            >
+              <SyntaxHighlighter
+                value={attribute.value}
+                valueType={attribute.valueType}
+                className={`font-mono text-xs ${getTextClass()} leading-none`}
+              />
+            </span>
+          )}
+        </div>
 
         {/* Modification label - always visible on the right */}
         {getModificationLabel()}
@@ -615,15 +677,24 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
       </div>
 
       {/* Mask/Substring selector tooltip */}
-      {showMaskSelector && selection && (
+      {shouldShowMaskSelector && activeSelection && (
         <MaskValueSelector
-          selection={selection}
+          selection={activeSelection}
           position={selectorPosition}
           onMask={handleMask}
           onNewAttribute={handleNewAttribute}
           onClose={() => {
-            clearSelection();
-            setShowMaskSelector(false);
+            if (selection) {
+              clearSelection();
+            }
+            setHoverSelection(null);
+            cancelHoverHide();
+          }}
+          onPointerEnter={cancelHoverHide}
+          onPointerLeave={() => {
+            if (!selection) {
+              scheduleHoverHide();
+            }
           }}
         />
       )}

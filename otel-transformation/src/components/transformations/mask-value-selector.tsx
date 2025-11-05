@@ -10,6 +10,8 @@ interface MaskValueSelectorProps {
   onMask: () => void;
   onNewAttribute: () => void;
   onClose: () => void;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
 }
 
 export const MaskValueSelector = React.memo(function MaskValueSelector({
@@ -18,6 +20,8 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
   onMask,
   onNewAttribute,
   onClose,
+  onPointerEnter,
+  onPointerLeave,
 }: MaskValueSelectorProps) {
   const selectionType = React.useMemo(() => {
     const isFullString = selection.start === 0 && selection.end === selection.fullText.length;
@@ -56,6 +60,8 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
           opacity: 1,
           pointerEvents: 'auto',
         }}
+        onMouseEnter={onPointerEnter}
+        onMouseLeave={onPointerLeave}
       >
         {/* Selection info */}
         <div className="mb-2 text-center">
@@ -72,7 +78,7 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
           >
             <EyeClosed className="h-3 w-3" />
-            <span>MASK</span>
+            <span>Mask</span>
           </button>
           <button
             onClick={() => {
@@ -82,7 +88,7 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
           >
             <Plus className="h-3 w-3" />
-            <span>CREATE</span>
+            <span>Create</span>
           </button>
         </div>
       </div>
