@@ -386,10 +386,10 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         (params.maskEnd === 'end' || params.maskEnd === rawValue.length);
       
       const range = isEntireString
-        ? '[Entire str]'
+        ? '(Entire str)'
         : params.maskEnd === 'end'
-          ? `[${params.maskStart}–end]`
-          : `[${params.maskStart}–${params.maskEnd}]`;
+          ? `(${params.maskStart}..end)`
+          : `(${params.maskStart}..${params.maskEnd})`;
       return (
         <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
           MASK {range}
