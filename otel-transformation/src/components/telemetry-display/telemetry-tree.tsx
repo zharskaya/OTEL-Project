@@ -28,6 +28,7 @@ interface TelemetryTreeProps {
 export function TelemetryTree({ tree }: TelemetryTreeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropIndicatorId, setDropIndicatorId] = useState<string | null>(null);
+  const [pendingCrossSectionId, setPendingCrossSectionId] = useState<string | null>(null);
   
   const transformations = useTransformations();
   const { addTransformation, setAttributeOrder } = useTransformationActions();
@@ -61,16 +62,37 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+    setPendingCrossSectionId(null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event;
     setDropIndicatorId(over ? (over.id as string) : null);
+
+    const { active } = event;
+    if (!over) {
+      setPendingCrossSectionId(null);
+      return;
+    }
+
+    const activeInfo = parseId(active.id as string);
+    const overInfo = parseId(over.id as string);
+    if (!activeInfo || !overInfo) {
+      setPendingCrossSectionId(null);
+      return;
+    }
+
+    if (activeInfo.sectionId !== overInfo.sectionId) {
+      setPendingCrossSectionId(active.id as string);
+    } else {
+      setPendingCrossSectionId(null);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setDropIndicatorId(null);
     setActiveId(null);
+    setPendingCrossSectionId(null);
     
     const { active, over } = event;
     if (!over || active.id === over.id) {
@@ -112,7 +134,6 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
       
       // Get current order of destination section attributes (read from store without subscribing)
       const attributeOrder = useTransformationStore.getState().attributeOrder;
-      const sourceSectionOrder = attributeOrder.get(activeInfo.sectionId);
       const destSectionOrder = attributeOrder.get(overInfo.sectionId)
         ? [...(attributeOrder.get(overInfo.sectionId) as string[])]
         : destSection.attributes.map(a => a.key);
@@ -167,13 +188,6 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
       
       // Update the visual order to place the attribute at the drop position
       setAttributeOrder(overInfo.sectionId, newOrder);
-
-      if (sourceSectionOrder) {
-        const updatedSourceOrder = sourceSectionOrder.filter(key => key !== draggedAttr.key);
-        if (updatedSourceOrder.length !== sourceSectionOrder.length) {
-          setAttributeOrder(activeInfo.sectionId, updatedSourceOrder);
-        }
-      }
     } else {
       // Same section reordering
       const attributeOrder = useTransformationStore.getState().attributeOrder;
@@ -220,6 +234,7 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
             section={section}
             dropIndicatorId={dropIndicatorId}
             activeId={activeId}
+            pendingDeletionId={pendingCrossSectionId}
           />
         ))}
       </div>

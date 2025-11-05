@@ -23,6 +23,7 @@ interface AttributeRowProps {
   isDraggable?: boolean;
   showDropIndicator?: boolean;
   sortableId?: string; // Composite ID for cross-section dragging
+  forceDeleted?: boolean;
   onRequestSubstring?: (params: {
     sourceKey: string;
     sourcePath: string;
@@ -32,7 +33,7 @@ interface AttributeRowProps {
   }) => void;
 }
 
-export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, onRequestSubstring }: AttributeRowProps) {
+export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, forceDeleted = false, onRequestSubstring }: AttributeRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isValueHovered, setIsValueHovered] = useState(false);
   const [showMaskSelector, setShowMaskSelector] = useState(false);
@@ -83,7 +84,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
       (t.params as any).attributePath === attribute.path
   );
 
-  const isDeleted = !!deleteTransformation;
+  const isDeleted = forceDeleted || !!deleteTransformation;
   const isMasked = !!maskTransformation;
   const isRenamed = !!renameTransformation;
   const isAdded = attribute.modifications.some(m => 

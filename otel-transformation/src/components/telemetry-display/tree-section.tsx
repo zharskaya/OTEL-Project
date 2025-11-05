@@ -19,9 +19,10 @@ interface TreeSectionProps {
   section: TelemetrySection;
   dropIndicatorId: string | null;
   activeId: string | null;
+  pendingDeletionId: string | null;
 }
 
-export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionProps) {
+export function TreeSection({ section, dropIndicatorId, activeId, pendingDeletionId }: TreeSectionProps) {
   const [isExpanded, setIsExpanded] = useState(section.expanded);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showOTTLForm, setShowOTTLForm] = useState(false);
@@ -360,6 +361,7 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
                   {allAttributes.map((attribute) => {
                     const compositeId = `${section.id}:${attribute.id}`;
                     const isDeleted = deletedAttributePaths.has(attribute.path);
+                    const isPendingDeletion = pendingDeletionId === compositeId;
                     
                     return (
                       <React.Fragment key={attribute.id}>
@@ -381,6 +383,7 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
                           onRequestSubstring={handleRequestSubstring}
                           isDraggable={true} // All attributes are draggable
                           showDropIndicator={dropIndicatorId === compositeId}
+                          forceDeleted={isPendingDeletion || isDeleted}
                         />
                       </React.Fragment>
                     );
