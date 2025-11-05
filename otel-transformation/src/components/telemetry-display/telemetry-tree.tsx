@@ -17,6 +17,7 @@ import { TelemetryTree as TelemetryTreeType, DisplayAttribute } from '@/types/te
 import { TreeSection } from './tree-section';
 import { AttributeRow } from './attribute-row';
 import { useTransformations, useTransformationActions } from '@/lib/state/hooks';
+import { useTransformationStore } from '@/lib/state/transformation-store';
 import { TransformationType, TransformationStatus } from '@/types/transformation-types';
 
 interface TelemetryTreeProps {
@@ -26,7 +27,6 @@ interface TelemetryTreeProps {
 export function TelemetryTree({ tree }: TelemetryTreeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropIndicatorId, setDropIndicatorId] = useState<string | null>(null);
-  const [sectionOrders, setSectionOrders] = useState<Record<string, string[]>>({});
   
   const transformations = useTransformations();
   const { addTransformation, setAttributeOrder } = useTransformationActions();
@@ -65,13 +65,6 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event;
     setDropIndicatorId(over ? (over.id as string) : null);
-  };
-
-  const handleVisualOrderChange = (sectionId: string, order: string[]) => {
-    setSectionOrders(prev => ({
-      ...prev,
-      [sectionId]: order,
-    }));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -116,8 +109,9 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
         return;
       }
       
-      // Get current order of destination section attributes
-      const destSectionOrder = sectionOrders[overInfo.sectionId] || destSection.attributes.map(a => a.key);
+      // Get current order of destination section attributes (read from store without subscribing)
+      const attributeOrder = useTransformationStore.getState().attributeOrder;
+      const destSectionOrder = attributeOrder.get(overInfo.sectionId) || destSection.attributes.map(a => a.key);
       
       // Find the index where we should insert
       let insertIndex = 0;
@@ -182,7 +176,6 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
             section={section}
             dropIndicatorId={dropIndicatorId}
             activeId={activeId}
-            onVisualOrderChange={handleVisualOrderChange}
           />
         ))}
       </div>
