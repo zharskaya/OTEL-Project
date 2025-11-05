@@ -23,11 +23,11 @@ export function OutputPanel({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between bg-gray-900 px-4 py-3">
+      <div className="flex items-center justify-between bg-gray-900 px-4 py-3 min-h-[52px]">
         <div className="flex items-center gap-3">
           <h2 className="font-semibold text-white">OUTPUT</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 min-w-0">
           {!isEmpty && (
             <button
               onClick={handleDownload}

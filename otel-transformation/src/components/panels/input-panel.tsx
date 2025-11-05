@@ -22,7 +22,7 @@ export function InputPanel({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between bg-gray-900 px-4 py-3">
+      <div className="flex items-center justify-between bg-gray-900 px-4 py-3 min-h-[52px]">
         <h2 className="font-semibold text-white">INPUT</h2>
         <TooltipProvider>
           <Tooltip>

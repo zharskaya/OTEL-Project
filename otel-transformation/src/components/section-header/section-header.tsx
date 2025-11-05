@@ -61,7 +61,7 @@ export function SectionHeader({
                   e.stopPropagation();
                   onAddStatic();
                 }}
-                className="rounded-md p-1.5 bg-white text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 cursor-pointer"
+                className="rounded-md p-1.5 bg-white text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 aria-label="Add static attribute"
               >
                 <Plus className="h-4 w-4" />
@@ -81,7 +81,7 @@ export function SectionHeader({
                   e.stopPropagation();
                   onAddRawOTTL();
                 }}
-                className="rounded-md p-1.5 bg-white text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 cursor-pointer"
+                className="rounded-md p-1.5 bg-white text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 aria-label="Add raw OTTL statement"
               >
                 <SquareTerminal className="h-4 w-4" />

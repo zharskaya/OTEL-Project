@@ -52,7 +52,7 @@ export function PanelDivider({ onResize }: PanelDividerProps) {
 
   return (
     <div
-      className={`group relative flex w-1 shrink-0 items-center justify-center transition-colors ${
+      className={`group relative flex w-0.5 shrink-0 items-center justify-center transition-colors ${
         isDragging || isHovered
           ? 'bg-blue-500'
           : 'bg-gray-200 hover:bg-gray-300'
