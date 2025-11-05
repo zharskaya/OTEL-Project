@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Trash2, Undo2, GripVertical, SquareTerminal } from 'lucide-react';
+import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DisplayAttribute, ValueType } from '@/types/telemetry-types';
@@ -410,18 +410,20 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               <button
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={handleSaveOTTL}
-                className="rounded-md px-2 py-1 bg-gray-900 text-white text-xs whitespace-nowrap transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
+                className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 title="Save (Enter)"
+                aria-label="Save (Enter)"
               >
-                Save ↵
+                <Check className="h-4 w-4" />
               </button>
               <button
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={handleCancelOTTL}
-                className="rounded-md px-2 py-1 bg-white text-gray-700 text-xs border border-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 leading-tight"
+                className="rounded-md p-1.5 bg-white text-gray-700 border border-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                 title="Cancel (Esc)"
+                aria-label="Cancel (Esc)"
               >
-                Cancel
+                <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
