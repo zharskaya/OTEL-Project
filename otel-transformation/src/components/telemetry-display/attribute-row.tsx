@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X } from 'lucide-react';
+import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, Replace } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DisplayAttribute, ValueType } from '@/types/telemetry-types';
@@ -288,26 +288,8 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
 
     setIsValueHovered(true);
     cancelHoverHide();
-
     if (!selection) {
-      const fullText = getFullValueText();
-      if (fullText.length > 0) {
-        setHoverSelection({
-          text: fullText,
-          start: 0,
-          end: fullText.length,
-          fullText,
-        });
-        const rectSource = valueRef.current?.getBoundingClientRect() ?? valueContainerRef.current?.getBoundingClientRect();
-        if (rectSource) {
-          setSelectorPosition({
-            x: rectSource.left + rectSource.width / 2,
-            y: rectSource.top,
-          });
-        }
-      } else {
-        setHoverSelection(null);
-      }
+      setHoverSelection(null);
     }
   };
 
@@ -317,6 +299,67 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
       return;
     }
     scheduleHoverHide();
+  };
+
+  const handleValueKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isDeleted || isMasked || isRenamed) {
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setIsValueHovered(true);
+      selectEntireValue();
+      cancelHoverHide();
+    }
+  };
+
+  const handleRowPointerLeave = () => {
+    setIsHovered(false);
+    setIsValueHovered(false);
+    if (!selection) {
+      scheduleHoverHide();
+    }
+  };
+
+  const selectEntireValue = () => {
+    const fullText = getFullValueText();
+    if (fullText.length === 0 || !valueRef.current) {
+      setHoverSelection(null);
+      return;
+    }
+
+    valueContainerRef.current?.focus({ preventScroll: true });
+    cancelHoverHide();
+
+    const tokens = valueRef.current.querySelectorAll<HTMLElement>('[data-value-token="true"]');
+    const range = document.createRange();
+    if (tokens.length > 0) {
+      const firstToken = tokens[0];
+      const lastToken = tokens[tokens.length - 1];
+      const startNode = firstToken.firstChild ?? firstToken;
+      const endNode = lastToken.firstChild ?? lastToken;
+      range.setStart(startNode, 0);
+      range.setEnd(endNode, endNode.textContent?.length ?? 0);
+    } else {
+      range.selectNodeContents(valueRef.current);
+    }
+
+    const selectionObj = window.getSelection();
+    selectionObj?.removeAllRanges();
+    selectionObj?.addRange(range);
+
+    const rectSource = valueRef.current.getBoundingClientRect();
+    setHoverSelection({
+      text: fullText,
+      start: 0,
+      end: fullText.length,
+      fullText,
+    });
+    setSelectorPosition({
+      x: rectSource.left + rectSource.width / 2,
+      y: rectSource.top,
+    });
   };
 
   const getModificationLabel = () => {
@@ -432,7 +475,10 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   const activeSelection = selection ?? hoverSelection;
-  const shouldShowMaskSelector = !!activeSelection && !isDeleted && !isMasked && !isRenamed;
+  const isValueInteractive = !isDeleted && !isMasked && !isRenamed;
+  const hasActiveSelection = !!activeSelection;
+  const shouldShowMaskSelector = hasActiveSelection && isValueInteractive;
+  const shouldShowValueTooltip = isValueHovered && !hasActiveSelection && isValueInteractive;
 
   return (
     <>
@@ -446,7 +492,8 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         style={style}
         className={`relative flex items-center py-1.5 mb-0.5 transition-colors hover:bg-gray-200 leading-none ${getRowBackgroundClass()}`}
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseLeave={handleRowPointerLeave}
+        onPointerLeave={handleRowPointerLeave}
       >
         {/* Drag handle - positioned absolutely on the left, vertically centered, shown on hover */}
         {isHovered && (
@@ -587,12 +634,21 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         </div>
 
         {/* Value - always starts at the same position */}
-        <div
-          ref={valueContainerRef}
-          className={`flex-1 min-w-0 cursor-text leading-none ${isValueHovered ? 'bg-gray-400' : ''}`}
-          onMouseEnter={handleValueMouseEnter}
-          onMouseLeave={handleValueMouseLeave}
-        >
+        <div className="flex-1 min-w-0">
+          <TooltipProvider delayDuration={0}>
+            <Tooltip open={shouldShowValueTooltip}>
+              <TooltipTrigger asChild>
+                <div
+                  ref={valueContainerRef}
+                  className={`inline-flex max-w-full cursor-text leading-none focus:outline-none ${isValueHovered ? 'bg-gray-400' : ''}`}
+                  tabIndex={isValueInteractive ? 0 : -1}
+                  onMouseEnter={handleValueMouseEnter}
+                  onMouseLeave={handleValueMouseLeave}
+                  onPointerLeave={handleValueMouseLeave}
+                  onKeyDown={handleValueKeyDown}
+                  role="textbox"
+                  aria-readonly="true"
+                >
           {isMasked ? (
             <span className="flex flex-col gap-1 leading-none">
               <span className="font-mono text-xs text-emerald-600 leading-none">
@@ -643,6 +699,15 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               />
             </span>
           )}
+                </div>
+              </TooltipTrigger>
+              {shouldShowValueTooltip && (
+                <TooltipContent>
+                  <p>Select to transform</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Modification label - always visible on the right */}
@@ -650,7 +715,29 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
 
         {/* Delete/Undo button - positioned absolutely on the right */}
         {isHovered && !isRenaming && (
-          <div className="absolute right-0">
+          <div className="absolute right-0 flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      selectEntireValue();
+                      setIsValueHovered(true);
+                      cancelHoverHide();
+                    }}
+                    onMouseEnter={handleValueMouseEnter}
+                    className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+                    aria-label="Transform value"
+                    title="Transform value"
+                  >
+                    <Replace className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Transform value</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {(isDeleted || isMasked || isRenamed || isAdded) ? (
               <button
                 onClick={handleUndo}

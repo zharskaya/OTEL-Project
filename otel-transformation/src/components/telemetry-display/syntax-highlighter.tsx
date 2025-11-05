@@ -18,13 +18,32 @@ export function SyntaxHighlighter({ value, valueType, className = '' }: SyntaxHi
 
   return (
     <span className={className}>
-      {shouldAddQuotes && <span className={getTokenColorClass('string')}>"</span>}
-      {tokens.map((token, index) => (
-        <span key={index} className={getTokenColorClass(shouldAddQuotes ? 'string' : token.type)}>
-          {token.value}
+      {shouldAddQuotes && (
+        <span
+          className={`${getTokenColorClass('string')} select-none pointer-events-none`}
+          aria-hidden="true"
+          data-quote="open"
+        >
+          "
         </span>
-      ))}
-      {shouldAddQuotes && <span className={getTokenColorClass('string')}>"</span>}
+      )}
+      {tokens.map((token, index) => {
+        const tokenClass = getTokenColorClass(shouldAddQuotes ? 'string' : token.type);
+        return (
+          <span key={index} className={tokenClass} data-value-token="true">
+            {token.value}
+          </span>
+        );
+      })}
+      {shouldAddQuotes && (
+        <span
+          className={`${getTokenColorClass('string')} select-none pointer-events-none`}
+          aria-hidden="true"
+          data-quote="close"
+        >
+          "
+        </span>
+      )}
     </span>
   );
 }

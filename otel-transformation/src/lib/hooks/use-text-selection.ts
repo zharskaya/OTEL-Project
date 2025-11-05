@@ -31,7 +31,7 @@ export function useTextSelection(ref: RefObject<HTMLElement | null>) {
         }
 
         const range = sel.getRangeAt(0);
-        const selectedText = sel.toString().trim();
+        const selectedText = sel.toString();
 
         // Check if selection is within our element
         if (
