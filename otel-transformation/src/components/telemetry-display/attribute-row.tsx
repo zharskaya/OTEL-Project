@@ -22,6 +22,7 @@ interface AttributeRowProps {
   attribute: DisplayAttribute;
   isDraggable?: boolean;
   showDropIndicator?: boolean;
+  sortableId?: string; // Composite ID for cross-section dragging
   onRequestSubstring?: (params: {
     sourceKey: string;
     sourcePath: string;
@@ -31,7 +32,7 @@ interface AttributeRowProps {
   }) => void;
 }
 
-export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, onRequestSubstring }: AttributeRowProps) {
+export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, onRequestSubstring }: AttributeRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isValueHovered, setIsValueHovered] = useState(false);
   const [showMaskSelector, setShowMaskSelector] = useState(false);
@@ -54,7 +55,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
     transition,
     isDragging,
   } = useSortable({
-    id: attribute.id,
+    id: sortableId || attribute.id, // Use composite ID if provided, otherwise fall back to attribute ID
     disabled: !isDraggable,
   });
 
@@ -374,15 +375,15 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Drag handle - positioned absolutely on the left, vertically centered */}
-        {(isDeleted || isMasked || isRenamed || attribute.modifications.some(m => m.type === 'add-static' || m.type === 'add-substring' || m.type === 'raw-ottl')) && (
+        {/* Drag handle - positioned absolutely on the left, vertically centered, shown on hover */}
+        {isHovered && (
           <div 
-            {...sortableAttributes}
-            {...listeners}
-            className="absolute cursor-grab active:cursor-grabbing top-1/2 -translate-y-1/2"
+            {...(isDraggable ? sortableAttributes : {})}
+            {...(isDraggable ? listeners : {})}
+            className={`absolute top-1/2 -translate-y-1/2 text-gray-600 ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
             style={{ left: `${4 + attribute.depth * 16}px` }}
           >
-            <GripVertical className="h-4 w-4 text-gray-600" />
+            <GripVertical className="h-4 w-4" />
           </div>
         )}
 

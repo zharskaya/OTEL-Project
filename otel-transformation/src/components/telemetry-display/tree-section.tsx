@@ -2,23 +2,11 @@
 
 import React, { useState } from 'react';
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragOverEvent,
-  DragStartEvent,
-  DragOverlay,
-} from '@dnd-kit/core';
-import {
   SortableContext,
   verticalListSortingStrategy,
-  arrayMove,
 } from '@dnd-kit/sortable';
 import { TelemetrySection, ValueType, ModificationColor, DisplayAttribute } from '@/types/telemetry-types';
+import { TransformationType } from '@/types/transformation-types';
 import { AttributeRow } from './attribute-row';
 import { SectionHeader } from '@/components/section-header/section-header';
 import { AddAttributeForm } from '@/components/transformations/add-attribute-form';
@@ -28,9 +16,11 @@ import { useTransformations, useTransformationActions } from '@/lib/state/hooks'
 
 interface TreeSectionProps {
   section: TelemetrySection;
+  dropIndicatorId: string | null;
+  activeId: string | null;
 }
 
-export function TreeSection({ section }: TreeSectionProps) {
+export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionProps) {
   const [isExpanded, setIsExpanded] = useState(section.expanded);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showOTTLForm, setShowOTTLForm] = useState(false);
@@ -46,20 +36,9 @@ export function TreeSection({ section }: TreeSectionProps) {
   
   // Track visual order of attributes (separate from transformation execution order)
   const [visualOrder, setVisualOrder] = useState<string[]>([]);
-  
-  // Track drop indicator position
-  const [dropIndicatorId, setDropIndicatorId] = useState<string | null>(null);
-  
-  // Track active dragged item
-  const [activeId, setActiveId] = useState<string | null>(null);
 
   const transformations = useTransformations();
   const { reorderTransformations, setAttributeOrder } = useTransformationActions();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor)
-  );
 
   // Get transformations for this section to create sortable IDs
   const sectionTransformations = transformations.filter(t => t.sectionId === section.id);
@@ -233,69 +212,20 @@ export function TreeSection({ section }: TreeSectionProps) {
       .filter((a): a is DisplayAttribute => a !== undefined);
   }, [baseAttributes, visualOrder]);
 
-  // Create sortable items list including modified attributes and added attributes
-  const sortableItems = allAttributes
-    .filter(attr => 
-      modifiedAttributePaths.has(attr.path) || 
-      attr.modifications.some(m => m.type === 'add-static' || m.type === 'add-substring' || m.type === 'raw-ottl')
-    )
-    .map(attr => attr.id);
+  // Get all deleted attribute paths for this section
+  const deletedAttributePaths = new Set(
+    transformations
+      .filter(t => t.type === TransformationType.DELETE && t.sectionId === section.id)
+      .map(t => (t.params as any).attributePath)
+  );
+
+  // Create sortable items list - all attributes except deleted ones get composite IDs
+  const sortableItems = allAttributes.map(attr => `${section.id}:${attr.id}`);
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
-    setDropIndicatorId(over ? (over.id as string) : null);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    // Clear drop indicator and active item
-    setDropIndicatorId(null);
-    setActiveId(null);
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    const oldIndex = visualOrder.indexOf(active.id as string);
-    const newIndex = visualOrder.indexOf(over.id as string);
-
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    // Update visual order using arrayMove
-    const newVisualOrder = arrayMove(visualOrder, oldIndex, newIndex);
-    setVisualOrder(newVisualOrder);
-    
-    // CRITICAL: Save the new order to the store by KEYS so OUTPUT panel can use it
-    const idToKey = new Map(allAttributes.map(a => [a.id, a.key]));
-    const keyOrder = newVisualOrder.map(id => idToKey.get(id)).filter((k): k is string => k !== undefined);
-    setAttributeOrder(section.id, keyOrder);
-
-    // Now update transformation execution order based on new visual order
-    // Find all transformations for modified/added attributes in this section
-    const orderedTransformations = newVisualOrder
-      .map(attrId => {
-        const attr = allAttributes.find(a => a.id === attrId);
-        if (!attr || attr.modifications.length === 0) return null;
-        return attr.modifications[0].transformationId;
-      })
-      .filter((id): id is string => id !== null);
-
-    // Reorder each transformation to match its position in visual order
-    orderedTransformations.forEach((transformationId, visualIndex) => {
-      const globalIndex = transformations.findIndex(t => t.id === transformationId);
-      if (globalIndex !== -1 && globalIndex !== visualIndex) {
-        reorderTransformations(transformationId, visualIndex);
-      }
-    });
-  };
 
   const handleAddStatic = () => {
     setShowAddForm(true);
@@ -373,19 +303,16 @@ export function TreeSection({ section }: TreeSectionProps) {
                 No attributes
               </div>
             ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
+              <SortableContext
+                items={sortableItems}
+                strategy={verticalListSortingStrategy}
               >
-                <SortableContext
-                  items={sortableItems}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div>
-                    {allAttributes.map((attribute) => (
+                <div>
+                  {allAttributes.map((attribute) => {
+                    const compositeId = `${section.id}:${attribute.id}`;
+                    const isDeleted = deletedAttributePaths.has(attribute.path);
+                    
+                    return (
                       <React.Fragment key={attribute.id}>
                         {/* Show substring form right above the source attribute */}
                         {showSubstringForm && substringParams && substringParams.sourceAttributePath === attribute.path && (
@@ -401,37 +328,16 @@ export function TreeSection({ section }: TreeSectionProps) {
                         )}
                         <AttributeRow
                           attribute={attribute}
+                          sortableId={compositeId}
                           onRequestSubstring={handleRequestSubstring}
-                          isDraggable={
-                            modifiedAttributePaths.has(attribute.path) || 
-                            attribute.modifications.some(m => m.type === 'add-static' || m.type === 'add-substring' || m.type === 'raw-ottl')
-                          }
-                          showDropIndicator={dropIndicatorId === attribute.id}
+                          isDraggable={true} // All attributes are draggable
+                          showDropIndicator={dropIndicatorId === compositeId}
                         />
                       </React.Fragment>
-                    ))}
-                  </div>
-                </SortableContext>
-                
-                {/* Drag overlay - shows the dragged item */}
-                <DragOverlay>
-                  {activeId ? (
-                    <div className="cursor-grabbing bg-white shadow-lg rounded border border-gray-200">
-                      {(() => {
-                        const draggedAttr = allAttributes.find(a => a.id === activeId);
-                        if (!draggedAttr) return null;
-                        return (
-                          <AttributeRow
-                            attribute={draggedAttr}
-                            isDraggable={true}
-                            onRequestSubstring={handleRequestSubstring}
-                          />
-                        );
-                      })()}
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
+                    );
+                  })}
+                </div>
+              </SortableContext>
             )}
           </div>
         </>
