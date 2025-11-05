@@ -173,62 +173,80 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
   
   // Update visual order when base attributes change OR stored order changes
   React.useEffect(() => {
-    const newIds = baseAttributes.map(a => a.id);
-    const keyToId = new Map(baseAttributes.map(a => [a.key, a.id]));
+    const keyToAttribute = new Map(baseAttributes.map((attr) => [attr.key, attr]));
+    const keyToId = new Map(baseAttributes.map((attr) => [attr.key, attr.id]));
+    const allKeys = baseAttributes.map((attr) => attr.key);
 
-    setVisualOrder(prev => {
-      let nextOrder: string[] | null = null;
+    let nextKeyOrder: string[];
 
-      if (storedAttributeOrder && storedAttributeOrder.length > 0) {
-        const mapped: string[] = [];
-        const newIdsSet = new Set(newIds);
+    if (storedAttributeOrder && storedAttributeOrder.length > 0) {
+      const filtered = storedAttributeOrder.filter((key) => keyToAttribute.has(key));
+      let updated = [...filtered];
 
-        for (const key of storedAttributeOrder) {
-          const id = keyToId.get(key);
-          if (id && newIdsSet.has(id)) {
-            mapped.push(id);
+      const missingKeys = allKeys.filter((key) => !updated.includes(key));
+
+      for (const key of missingKeys) {
+        const attribute = keyToAttribute.get(key);
+        if (!attribute) continue;
+
+        const firstModification = attribute.modifications[0]?.type;
+        const sourcePath = (attribute as any).sourceAttributePath as string | undefined;
+
+        if (firstModification === 'add-substring' && sourcePath) {
+          const sourceAttribute = baseAttributes.find((attr) => attr.path === sourcePath);
+          const sourceKey = sourceAttribute?.key;
+          const insertIndex = sourceKey ? updated.indexOf(sourceKey) : -1;
+          if (insertIndex !== -1) {
+            updated.splice(insertIndex, 0, key);
+          } else {
+            updated.unshift(key);
           }
-        }
-
-        for (const id of newIds) {
-          if (!mapped.includes(id)) {
-            mapped.push(id);
-          }
-        }
-
-        nextOrder = mapped;
-      } else {
-        // No stored order yet – follow baseAttributes order directly
-        const prevSet = new Set(prev);
-        const newSet = new Set(newIds);
-        const added = newIds.filter(id => !prevSet.has(id));
-        const removed = prev.filter(id => !newSet.has(id));
-
-        if (prev.length > 0 && added.length === 0 && removed.length === 0) {
-          return prev;
-        }
-
-        nextOrder = [];
-        for (const id of newIds) {
-          if (!nextOrder.includes(id)) {
-            nextOrder.push(id);
-          }
+        } else {
+          // Static and raw OTTL attributes should appear at the top
+          updated.unshift(key);
         }
       }
 
-      if (!nextOrder) {
-        return prev;
+      for (const key of allKeys) {
+        if (!updated.includes(key)) {
+          updated.push(key);
+        }
       }
 
+      nextKeyOrder = updated;
+    } else {
+      // No stored order yet – use natural baseAttributes order
+      nextKeyOrder = allKeys;
+    }
+
+    const nextIdOrder = nextKeyOrder
+      .map((key) => keyToId.get(key))
+      .filter((id): id is string => Boolean(id));
+
+    // Also ensure any attribute IDs not mapped (in case of duplicates) are appended
+    for (const attr of baseAttributes) {
+      if (!nextIdOrder.includes(attr.id)) {
+        nextIdOrder.push(attr.id);
+      }
+    }
+
+    setVisualOrder((prev) => {
       const prevStr = prev.join(',');
-      const nextStr = nextOrder.join(',');
+      const nextStr = nextIdOrder.join(',');
       if (prevStr === nextStr) {
         return prev;
       }
-
-      return nextOrder;
+      return nextIdOrder;
     });
-  }, [baseAttributes, storedAttributeOrder]);
+
+    const normalizedStored = storedAttributeOrder
+      ? storedAttributeOrder.filter((key) => keyToAttribute.has(key))
+      : [];
+
+    if (normalizedStored.join(',') !== nextKeyOrder.join(',')) {
+      setAttributeOrder(section.id, nextKeyOrder);
+    }
+  }, [baseAttributes, storedAttributeOrder, section.id, setAttributeOrder]);
   
   // Sort attributes by visual order
   const allAttributes = React.useMemo(() => {
