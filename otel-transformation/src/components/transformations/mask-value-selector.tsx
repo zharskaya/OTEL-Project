@@ -82,7 +82,7 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
           >
             <Plus className="h-3 w-3" />
-            <span>NEW ATRBT</span>
+            <span>CREATE</span>
           </button>
         </div>
       </div>

@@ -58,6 +58,9 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   } = useSortable({
     id: sortableId || attribute.id, // Use composite ID if provided, otherwise fall back to attribute ID
     disabled: !isDraggable,
+    data: {
+      attribute,
+    },
   });
 
   // Check if this attribute has a delete transformation

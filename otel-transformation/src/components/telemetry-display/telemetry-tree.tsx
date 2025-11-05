@@ -31,7 +31,7 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
   const [pendingCrossSectionId, setPendingCrossSectionId] = useState<string | null>(null);
   
   const transformations = useTransformations();
-  const { addTransformation, setAttributeOrder } = useTransformationActions();
+  const { addTransformation, setAttributeOrder, updateTransformation } = useTransformationActions();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -104,58 +104,108 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
     
     if (!activeInfo || !overInfo) return;
 
-    // Check if dragging between different sections
     if (activeInfo.sectionId !== overInfo.sectionId) {
-      // Cross-section drag detected
-      // Find the attribute being dragged
-      const sourceSection = tree.sections.find(s => s.id === activeInfo.sectionId);
-      const destSection = tree.sections.find(s => s.id === overInfo.sectionId);
-      
-      if (!sourceSection || !destSection) return;
-      
-      // Find the attribute in source section
-      const draggedAttr = sourceSection.attributes.find(a => a.id === activeInfo.attributeId);
-      if (!draggedAttr) return;
-      
-      // Find the drop target attribute in destination section
-      const dropTargetAttr = destSection.attributes.find(a => a.id === overInfo.attributeId);
-      
-      // Check if the attribute is already deleted - deleted attributes cannot be moved between sections
-      const isDeleted = transformations.some(
-        t => t.type === TransformationType.DELETE &&
-          (t.params as any).attributeKey === draggedAttr.key &&
-          (t.params as any).attributePath === draggedAttr.path
-      );
-      
-      if (isDeleted) {
-        // Don't allow cross-section drag for deleted attributes
+      const storeState = useTransformationStore.getState();
+      const sourceSection = tree.sections.find((s) => s.id === activeInfo.sectionId) || null;
+      const destSection = tree.sections.find((s) => s.id === overInfo.sectionId) || null;
+
+      const activeAttrData = (active.data.current as any)?.attribute as DisplayAttribute | undefined;
+      const overAttrData = (over.data.current as any)?.attribute as DisplayAttribute | undefined;
+
+      const draggedAttr = sourceSection?.attributes.find((a) => a.id === activeInfo.attributeId) || activeAttrData || null;
+      if (!draggedAttr) {
         return;
       }
-      
-      // Get current order of destination section attributes (read from store without subscribing)
-      const attributeOrder = useTransformationStore.getState().attributeOrder;
-      const destSectionOrder = attributeOrder.get(overInfo.sectionId)
-        ? [...(attributeOrder.get(overInfo.sectionId) as string[])]
-        : destSection.attributes.map(a => a.key);
-      
-      // Find the index where we should insert
-      // Remove the key if it already exists in the destination order (should not happen but keeps things safe)
-      const existingIndex = destSectionOrder.indexOf(draggedAttr.key);
+
+      const draggedKey = draggedAttr.key;
+      const modificationTypes = new Set((activeAttrData?.modifications || []).map((m) => m.type));
+
+      if (modificationTypes.has(TransformationType.DELETE)) {
+        return;
+      }
+
+      const attributeOrderMap = storeState.attributeOrder;
+      const destSectionOrder = attributeOrderMap.get(overInfo.sectionId)
+        ? [...(attributeOrderMap.get(overInfo.sectionId) as string[])]
+        : destSection
+          ? destSection.attributes.map((a) => a.key)
+          : [];
+
+      const dropTargetKey = overAttrData?.key
+        || destSection?.attributes.find((a) => a.id === overInfo.attributeId)?.key;
+
+      const existingIndex = destSectionOrder.indexOf(draggedKey);
       if (existingIndex !== -1) {
         destSectionOrder.splice(existingIndex, 1);
       }
 
       let insertIndex = destSectionOrder.length;
-      if (dropTargetAttr) {
-        insertIndex = destSectionOrder.indexOf(dropTargetAttr.key);
-        if (insertIndex === -1) insertIndex = destSectionOrder.length;
+      if (dropTargetKey) {
+        const idx = destSectionOrder.indexOf(dropTargetKey);
+        if (idx !== -1) {
+          insertIndex = idx;
+        }
       }
-      
-      // Create new order with the dragged attribute inserted at the drop position
+
       const newOrder = [...destSectionOrder];
-      newOrder.splice(insertIndex, 0, draggedAttr.key);
-      
-      // Create DELETE transformation in source section
+      newOrder.splice(insertIndex, 0, draggedKey);
+      setAttributeOrder(overInfo.sectionId, newOrder);
+
+      const allowTransformMoveTypes = new Set<TransformationType | string>([
+        TransformationType.ADD_STATIC,
+        TransformationType.ADD_SUBSTRING,
+        TransformationType.RAW_OTTL,
+        TransformationType.RENAME_KEY,
+        TransformationType.MASK,
+      ]);
+
+      const isTransformMove = [...allowTransformMoveTypes].some((type) => modificationTypes.has(type));
+
+      if (isTransformMove) {
+        const matchingModification = activeAttrData?.modifications.find((m) => allowTransformMoveTypes.has(m.type as TransformationType));
+
+        if (matchingModification) {
+          const transformation = storeState.transformations.find((t) => t.id === matchingModification.transformationId);
+
+          if (transformation) {
+            const updatedParams = { ...(transformation.params as any) };
+
+            if ('insertionPoint' in updatedParams && destSection) {
+              updatedParams.insertionPoint = destSection.id;
+            }
+
+            if ('attributePath' in updatedParams) {
+              updatedParams.attributePath = draggedAttr.path;
+            }
+
+            updateTransformation(transformation.id, {
+              sectionId: overInfo.sectionId,
+              params: updatedParams,
+            });
+          }
+        }
+
+        const sourceOrder = attributeOrderMap.get(activeInfo.sectionId);
+        if (sourceOrder) {
+          const filtered = sourceOrder.filter((key) => key !== draggedKey);
+          if (filtered.length !== sourceOrder.length) {
+            setAttributeOrder(activeInfo.sectionId, filtered);
+          }
+        }
+
+        return;
+      }
+
+      const isDeleted = transformations.some(
+        (t) => t.type === TransformationType.DELETE
+          && (t.params as any).attributeKey === draggedKey
+          && (t.params as any).attributePath === draggedAttr.path
+      );
+
+      if (isDeleted || !sourceSection || !destSection) {
+        return;
+      }
+
       addTransformation({
         id: `t-${Date.now()}-delete`,
         type: TransformationType.DELETE,
@@ -166,11 +216,12 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
         params: {
           type: TransformationType.DELETE,
           attributePath: draggedAttr.path,
-          attributeKey: draggedAttr.key,
+          attributeKey: draggedKey,
         },
       });
-      
-      // Create ADD transformation in destination section
+
+      const valueForAdd = activeAttrData?.value ?? draggedAttr.value;
+
       addTransformation({
         id: `t-${Date.now()}-add`,
         type: TransformationType.ADD_STATIC,
@@ -181,13 +232,12 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
         params: {
           type: TransformationType.ADD_STATIC,
           insertionPoint: destSection.id,
-          key: draggedAttr.key,
-          value: draggedAttr.value,
+          key: draggedKey,
+          value: valueForAdd,
         },
       });
-      
-      // Update the visual order to place the attribute at the drop position
-      setAttributeOrder(overInfo.sectionId, newOrder);
+
+      return;
     } else {
       // Same section reordering
       const attributeOrder = useTransformationStore.getState().attributeOrder;

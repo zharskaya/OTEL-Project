@@ -45,7 +45,7 @@ export function OutputPanel({
         {isEmpty ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-gray-500">
-              Run transformation (⌘/Ctrl + Enter) to preview the output
+               Click Preview or press (⌘ / Ctrl + Enter) to view the output
             </p>
           </div>
         ) : (
@@ -53,7 +53,7 @@ export function OutputPanel({
                 {/* Info message when changes are made */}
                 {hasChanges && (
                   <div className="sticky top-0 z-10 border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-800 font-medium">
-                    Change made. Run (⌘/Ctrl + Enter) to preview updates.
+                    Change made. Click Preview or press (⌘ / Ctrl + Enter) to view updates.
                   </div>
                 )}
                 {/* Output content with reduced opacity when changes exist */}
