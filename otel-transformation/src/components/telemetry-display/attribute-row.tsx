@@ -24,6 +24,7 @@ interface AttributeRowProps {
   showDropIndicator?: boolean;
   sortableId?: string; // Composite ID for cross-section dragging
   forceDeleted?: boolean;
+  movedKeys?: Set<string>;
   onRequestSubstring?: (params: {
     sourceKey: string;
     sourcePath: string;
@@ -33,7 +34,7 @@ interface AttributeRowProps {
   }) => void;
 }
 
-export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, forceDeleted = false, onRequestSubstring }: AttributeRowProps) {
+export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, forceDeleted = false, movedKeys = new Set<string>(), onRequestSubstring }: AttributeRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isValueHovered, setIsValueHovered] = useState(false);
   const [showMaskSelector, setShowMaskSelector] = useState(false);
@@ -256,9 +257,10 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
 
   const getModificationLabel = () => {
     if (isDeleted) {
+      const text = movedKeys.has(attribute.key) ? 'MOVED OUT' : 'DELETE';
       return (
         <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800">
-          DELETE
+          {text}
         </span>
       );
     }

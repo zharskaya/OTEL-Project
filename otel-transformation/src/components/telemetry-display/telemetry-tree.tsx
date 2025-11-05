@@ -29,6 +29,7 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropIndicatorId, setDropIndicatorId] = useState<string | null>(null);
   const [pendingCrossSectionId, setPendingCrossSectionId] = useState<string | null>(null);
+  const movedKeysRef = React.useRef<Set<string>>(new Set());
   
   const transformations = useTransformations();
   const { addTransformation, setAttributeOrder, updateTransformation } = useTransformationActions();
@@ -193,6 +194,8 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
           }
         }
 
+        movedKeysRef.current.add(draggedKey);
+
         return;
       }
 
@@ -236,6 +239,8 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
           value: valueForAdd,
         },
       });
+
+      movedKeysRef.current.add(draggedKey);
 
       return;
     } else {
@@ -285,6 +290,7 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
             dropIndicatorId={dropIndicatorId}
             activeId={activeId}
             pendingDeletionId={pendingCrossSectionId}
+            movedKeys={movedKeysRef.current}
           />
         ))}
       </div>

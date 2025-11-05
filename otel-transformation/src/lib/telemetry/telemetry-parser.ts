@@ -50,40 +50,55 @@ export class TelemetryParser {
         // Parse Spans first
         scopeSpan.spans.forEach((span, sIndex) => {
           // Span Info section
-          const spanInfoAttributes: DisplayAttribute[] = [
-            this.createAttribute(
-              `span-${rsIndex}-${ssIndex}-${sIndex}-name`,
-              `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].name`,
-              `span-info-${rsIndex}-${ssIndex}-${sIndex}`,
-              'name',
-              { stringValue: span.name },
-              0
-            ),
-            this.createAttribute(
-              `span-${rsIndex}-${ssIndex}-${sIndex}-traceId`,
-              `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].traceId`,
-              `span-info-${rsIndex}-${ssIndex}-${sIndex}`,
-              'traceId',
-              { stringValue: span.traceId },
-              0
-            ),
-            this.createAttribute(
-              `span-${rsIndex}-${ssIndex}-${sIndex}-spanId`,
-              `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].spanId`,
-              `span-info-${rsIndex}-${ssIndex}-${sIndex}`,
-              'spanId',
-              { stringValue: span.spanId },
-              0
-            ),
-            this.createAttribute(
-              `span-${rsIndex}-${ssIndex}-${sIndex}-kind`,
-              `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].kind`,
-              `span-info-${rsIndex}-${ssIndex}-${sIndex}`,
-              'kind',
-              { intValue: span.kind.toString() },
-              0
-            ),
-          ];
+          const spanRecord = span as unknown as Record<string, unknown>;
+          const excludedSpanInfoKeys = new Set([
+            'attributes',
+            'events',
+            'links',
+            'status',
+            'droppedAttributesCount',
+            'droppedEventsCount',
+            'droppedLinksCount',
+          ]);
+          const preferredSpanInfoKeys = ['name', 'traceId', 'spanId', 'kind'];
+          const spanKeys = [...new Set([...preferredSpanInfoKeys, ...Object.keys(spanRecord)])];
+
+          const spanInfoAttributes: DisplayAttribute[] = [];
+          spanKeys.forEach((key, keyIndex) => {
+            if (excludedSpanInfoKeys.has(key)) {
+              return;
+            }
+
+            const rawValue = spanRecord[key];
+            if (rawValue === undefined || rawValue === null) {
+              return;
+            }
+
+            const anyValue = this.primitiveToAnyValue(rawValue);
+            if (!anyValue) {
+              return;
+            }
+
+            if (
+              'stringValue' in anyValue &&
+              anyValue.stringValue !== undefined &&
+              anyValue.stringValue === '' &&
+              Object.keys(anyValue).length === 1
+            ) {
+              return;
+            }
+
+            spanInfoAttributes.push(
+              this.createAttribute(
+                `span-${rsIndex}-${ssIndex}-${sIndex}-info-${keyIndex}-${key}`,
+                `resourceSpans[${rsIndex}].scopeSpans[${ssIndex}].spans[${sIndex}].${key}`,
+                `span-info-${rsIndex}-${ssIndex}-${sIndex}`,
+                key,
+                anyValue,
+                0
+              )
+            );
+          });
 
           sections.push(
             this.createSection(
@@ -286,6 +301,34 @@ export class TelemetryParser {
     }
     if (value.bytesValue !== undefined) return value.bytesValue;
     return '';
+  }
+
+  private static primitiveToAnyValue(value: unknown): AnyValue | null {
+    if (typeof value === 'string') {
+      return { stringValue: value };
+    }
+    if (typeof value === 'number') {
+      return Number.isInteger(value)
+        ? { intValue: value.toString() }
+        : { doubleValue: value };
+    }
+    if (typeof value === 'boolean') {
+      return { boolValue: value };
+    }
+    if (value instanceof Date) {
+      return { stringValue: value.toISOString() };
+    }
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (typeof value === 'object') {
+      try {
+        return { stringValue: JSON.stringify(value) };
+      } catch (err) {
+        return { stringValue: String(value) };
+      }
+    }
+    return null;
   }
 
   private static detectValueType(value: AnyValue): ValueType {

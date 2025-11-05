@@ -20,9 +20,10 @@ interface TreeSectionProps {
   dropIndicatorId: string | null;
   activeId: string | null;
   pendingDeletionId: string | null;
+  movedKeys: Set<string>;
 }
 
-export function TreeSection({ section, dropIndicatorId, activeId, pendingDeletionId }: TreeSectionProps) {
+export function TreeSection({ section, dropIndicatorId, activeId, pendingDeletionId, movedKeys }: TreeSectionProps) {
   const [isExpanded, setIsExpanded] = useState(section.expanded);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showOTTLForm, setShowOTTLForm] = useState(false);
@@ -384,6 +385,7 @@ export function TreeSection({ section, dropIndicatorId, activeId, pendingDeletio
                           isDraggable={true} // All attributes are draggable
                           showDropIndicator={dropIndicatorId === compositeId}
                           forceDeleted={isPendingDeletion || isDeleted}
+                          movedKeys={movedKeys}
                         />
                       </React.Fragment>
                     );

@@ -22,14 +22,14 @@ export function InputPanel({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between bg-gray-900 px-4 py-3 min-h-[52px]">
-        <h2 className="font-semibold text-white">INPUT</h2>
+      <div className="flex items-center justify-between bg-gray-100 px-4 py-3 min-h-[52px]">
+        <h2 className="font-semibold text-gray-900">INPUT</h2>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={onRun}
-                className="flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-900 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-900 cursor-pointer"
+                className="flex items-center gap-1.5 rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-900 cursor-pointer"
               >
                 Preview
               </button>

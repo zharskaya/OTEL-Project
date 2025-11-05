@@ -100,15 +100,21 @@ export class TransformationEngine {
         if (sectionId.includes('resource')) {
           data.resource.attributes.push({
             key,
-            value: { stringValue: params.value || 'demo-value' }
+            value: { stringValue: params.value || '' }
           });
         } else if (sectionId.includes('span-attributes')) {
           const span = data.scopeSpans[0]?.spans[0];
           if (span) {
             span.attributes.push({
               key,
-              value: { stringValue: params.value || 'demo-value' }
+              value: { stringValue: params.value || '' }
             });
+          }
+        } else if (sectionId.includes('span-info')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            const spanRecord = span as unknown as Record<string, unknown>;
+            spanRecord[key] = params.value || '';
           }
         }
         break;
@@ -125,6 +131,12 @@ export class TransformationEngine {
           const span = data.scopeSpans[0]?.spans[0];
           if (span) {
             span.attributes = span.attributes.filter(attr => attr.key !== key);
+          }
+        } else if (sectionId.includes('span-info')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            const spanRecord = span as unknown as Record<string, unknown>;
+            delete spanRecord[key];
           }
         }
         break;
@@ -171,6 +183,21 @@ export class TransformationEngine {
           if (span) {
             applyMask(span.attributes);
           }
+        } else if (sectionId.includes('span-info')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            const spanRecord = span as unknown as Record<string, any>;
+            const currentValue = spanRecord[key];
+            if (typeof currentValue === 'string') {
+              const original = currentValue;
+              const effectiveEnd = maskEnd === 'end' ? original.length : Math.min(maskEnd, original.length);
+              const effectiveStart = Math.max(0, Math.min(maskStart, original.length));
+              if (effectiveStart < effectiveEnd) {
+                const maskedSegment = maskChar.repeat(effectiveEnd - effectiveStart);
+                spanRecord[key] = `${original.slice(0, effectiveStart)}${maskedSegment}${original.slice(effectiveEnd)}`;
+              }
+            }
+          }
         }
         break;
       }
@@ -207,6 +234,15 @@ export class TransformationEngine {
           const span = data.scopeSpans[0]?.spans[0];
           if (span) {
             applyRename(span.attributes);
+          }
+        } else if (sectionId.includes('span-info')) {
+          const span = data.scopeSpans[0]?.spans[0];
+          if (span) {
+            const spanRecord = span as unknown as Record<string, any>;
+            if (Object.prototype.hasOwnProperty.call(spanRecord, oldKey)) {
+              spanRecord[newKey] = spanRecord[oldKey];
+              delete spanRecord[oldKey];
+            }
           }
         }
         break;
