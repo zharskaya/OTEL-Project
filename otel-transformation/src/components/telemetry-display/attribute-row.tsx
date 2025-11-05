@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, Replace } from 'lucide-react';
+import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, Replace, EyeClosed, KeyRound } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DisplayAttribute, ValueType } from '@/types/telemetry-types';
@@ -37,7 +37,6 @@ interface AttributeRowProps {
 export function AttributeRow({ attribute, isDraggable = false, showDropIndicator = false, sortableId, forceDeleted = false, movedKeys = new Set<string>(), onRequestSubstring }: AttributeRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isValueHovered, setIsValueHovered] = useState(false);
-  const [isKeyHovered, setIsKeyHovered] = useState(false);
   const [hoverSelection, setHoverSelection] = useState<TextSelection | null>(null);
   const [selectorPosition, setSelectorPosition] = useState({ x: 0, y: 0 });
   const [isRenaming, setIsRenaming] = useState(false);
@@ -480,6 +479,15 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   const shouldShowMaskSelector = hasActiveSelection && isValueInteractive;
   const shouldShowValueTooltip = isValueHovered && !hasActiveSelection && isValueInteractive;
 
+  const openSelectionTooltip = () => {
+    if (!isValueInteractive) {
+      return;
+    }
+    selectEntireValue();
+    setIsValueHovered(true);
+    cancelHoverHide();
+  };
+
   return (
     <>
       {/* Drop indicator line */}
@@ -589,9 +597,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
           <div style={{ paddingLeft: `${40 + attribute.depth * 16}px` }} className="flex items-center gap-3 leading-none">
             {/* Key text */}
             <div
-              className={`flex-1 min-w-0 leading-none ${isKeyHovered && !isRenaming ? 'bg-gray-400' : ''}`}
-              onMouseEnter={() => !isRenaming && setIsKeyHovered(true)}
-              onMouseLeave={() => setIsKeyHovered(false)}
+              className="flex-1 min-w-0 leading-none"
             >
           {isRenaming ? (
             <RenameKeyForm
@@ -615,7 +621,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span
-                    className={`font-mono text-xs cursor-text leading-none ${isDeleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}
+                    className={`font-mono text-xs leading-none ${isDeleted ? 'text-gray-400 line-through cursor-default' : 'text-gray-900 cursor-pointer'}`}
                     onClick={() => !isDeleted && !isMasked && setIsRenaming(true)}
                   >
                     {attribute.key}
@@ -640,7 +646,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               <TooltipTrigger asChild>
                 <div
                   ref={valueContainerRef}
-                  className={`inline-flex max-w-full cursor-text leading-none focus:outline-none ${isValueHovered ? 'bg-gray-400' : ''}`}
+                  className={`inline-flex max-w-full leading-none focus:outline-none ${isValueInteractive ? 'cursor-pointer' : 'cursor-default'}`}
                   tabIndex={isValueInteractive ? 0 : -1}
                   onMouseEnter={handleValueMouseEnter}
                   onMouseLeave={handleValueMouseLeave}
@@ -713,7 +719,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         {/* Modification label - always visible on the right */}
         {getModificationLabel()}
 
-        {/* Delete/Undo button - positioned absolutely on the right */}
+        {/* Action buttons - positioned absolutely on the right */}
         {isHovered && !isRenaming && (
           <div className="absolute right-0 flex items-center gap-1">
             <TooltipProvider>
@@ -721,20 +727,59 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => {
-                      selectEntireValue();
-                      setIsValueHovered(true);
-                      cancelHoverHide();
+                      openSelectionTooltip();
                     }}
                     onMouseEnter={handleValueMouseEnter}
                     className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-                    aria-label="Transform value"
-                    title="Transform value"
+                    aria-label="Mask value"
+                    title="Mask value"
+                  >
+                    <EyeClosed className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Mask value</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      openSelectionTooltip();
+                    }}
+                    onMouseEnter={handleValueMouseEnter}
+                    className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+                    aria-label="Extract substring"
+                    title="Extract substring"
                   >
                     <Replace className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Transform value</p>
+                  <p>Extract substring</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      if (!isDeleted && !isMasked) {
+                        setIsRenaming(true);
+                      }
+                    }}
+                    className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+                    aria-label="Rename key"
+                    title="Rename key"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Rename key</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
