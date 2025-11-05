@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, Replace, EyeClosed, KeyRound } from 'lucide-react';
+import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, Replace, KeyRound } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DisplayAttribute, ValueType } from '@/types/telemetry-types';
@@ -731,34 +731,14 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                     }}
                     onMouseEnter={handleValueMouseEnter}
                     className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-                    aria-label="Mask value"
-                    title="Mask value"
-                  >
-                    <EyeClosed className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mask value</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => {
-                      openSelectionTooltip();
-                    }}
-                    onMouseEnter={handleValueMouseEnter}
-                    className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-                    aria-label="Create new attribute"
-                    title="New attribute"
+                    aria-label="Select value to transform"
+                    title="Select value to transform"
                   >
                     <Replace className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Create new attribute</p>
+                  <p>Select value to transform</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

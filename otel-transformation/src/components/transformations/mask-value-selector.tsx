@@ -23,12 +23,10 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
   onPointerEnter,
   onPointerLeave,
 }: MaskValueSelectorProps) {
-  const selectionType = React.useMemo(() => {
+  const rangeLabel = React.useMemo(() => {
     const isFullString = selection.start === 0 && selection.end === selection.fullText.length;
     const endValue = selection.end === selection.fullText.length ? 'end' : selection.end;
-    return isFullString
-      ? 'Entire string'
-      : `Substr (${selection.start}–${endValue})`;
+    return isFullString ? 'Entire string' : `Substring (${selection.start}–${endValue})`;
   }, [selection.start, selection.end, selection.fullText.length]);
 
   // Handle Escape key to close
@@ -63,19 +61,16 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
         onMouseEnter={onPointerEnter}
         onMouseLeave={onPointerLeave}
       >
-        {/* Selection info */}
-        <div className="mb-2 text-center">
-          <p className="text-xs text-gray-300 leading-tight">{selectionType}</p>
+        <div className="mb-3 text-center">
+          <p className="text-xs font-semibold text-white leading-tight">{rangeLabel}</p>
         </div>
-
-        {/* Options - inline buttons */}
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => {
               onMask();
               onClose();
             }}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
+            className="flex items-center gap-1 rounded-md bg-gray-800 px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
           >
             <EyeClosed className="h-3 w-3" />
             <span>Mask</span>
@@ -85,10 +80,10 @@ export const MaskValueSelector = React.memo(function MaskValueSelector({
               onNewAttribute();
               onClose();
             }}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
+            className="flex items-center gap-1 rounded-md bg-gray-800 px-2 py-1 text-xs text-white transition-colors hover:bg-gray-700 cursor-pointer leading-tight"
           >
             <Plus className="h-3 w-3" />
-            <span>Create</span>
+            <span>Create attribute</span>
           </button>
         </div>
       </div>
