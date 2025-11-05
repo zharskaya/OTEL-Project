@@ -96,6 +96,13 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   const isAdded = attribute.modifications.some(m => 
     m.type === 'add-static' || m.type === 'add-substring' || m.type === 'raw-ottl'
   );
+  const hasAnyModification =
+    attribute.modifications.length > 0 ||
+    isDeleted ||
+    isMasked ||
+    isRenamed ||
+    isAdded ||
+    attribute.isRawOTTL;
   
   // Find the add transformation record if this is an added attribute
   const addTransformationRecord = isAdded ? 
@@ -722,47 +729,51 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         {/* Action buttons - positioned absolutely on the right */}
         {isHovered && !isRenaming && !shouldShowMaskSelector && (
           <div className="absolute right-0 flex items-center gap-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => {
-                      openSelectionTooltip();
-                    }}
-                    onMouseEnter={handleValueMouseEnter}
-                    className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-                    aria-label="Select value to transform"
-                    title="Select value to transform"
-                  >
-                    <Replace className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Select value to transform</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => {
-                      if (!isDeleted && !isMasked) {
-                        setIsRenaming(true);
-                      }
-                    }}
-                    className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-                    aria-label="Rename key"
-                    title="Rename key"
-                  >
-                    <KeyRound className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Rename key</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {!hasAnyModification && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        openSelectionTooltip();
+                      }}
+                      onMouseEnter={handleValueMouseEnter}
+                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+                      aria-label="Select value to transform"
+                      title="Select value to transform"
+                    >
+                      <Replace className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Select value to transform</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {!isDeleted && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        if (!isDeleted && !isMasked) {
+                          setIsRenaming(true);
+                        }
+                      }}
+                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+                      aria-label="Rename key"
+                      title="Rename key"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Rename key</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             {(isDeleted || isMasked || isRenamed || isAdded) ? (
               <button
                 onClick={handleUndo}
