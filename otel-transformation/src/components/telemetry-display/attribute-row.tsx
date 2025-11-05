@@ -317,7 +317,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
     }
     // All modified lines get light gray background
     if (isDeleted || isMasked || isRenamed || attribute.modifications.length > 0) {
-      return 'bg-gray-50';
+      return 'bg-gray-100';
     }
     return '';
   };
