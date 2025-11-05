@@ -717,10 +717,10 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         </div>
 
         {/* Modification label - always visible on the right */}
-        {getModificationLabel()}
+        {!shouldShowMaskSelector && getModificationLabel()}
 
         {/* Action buttons - positioned absolutely on the right */}
-        {isHovered && !isRenaming && (
+        {isHovered && !isRenaming && !shouldShowMaskSelector && (
           <div className="absolute right-0 flex items-center gap-1">
             <TooltipProvider>
               <Tooltip>
@@ -751,14 +751,14 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                     }}
                     onMouseEnter={handleValueMouseEnter}
                     className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
-                    aria-label="Extract substring"
-                    title="Extract substring"
+                    aria-label="Create new attribute"
+                    title="New attribute"
                   >
                     <Replace className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Extract substring</p>
+                  <p>Create new attribute</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

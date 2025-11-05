@@ -57,6 +57,7 @@ export default function Home() {
   return (
     <main className="h-screen w-screen overflow-hidden pb-14">
       <SplitPanel
+        initialLeftWidth={60}
         leftPanel={
           <InputPanel onRun={handleRun} hasChanges={hasChanges}>
             <TelemetryTree tree={inputTree} />

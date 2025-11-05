@@ -41,7 +41,7 @@ export function OutputPanel({
       </div>
 
       {/* Content */}
-      <div className="relative flex-1 overflow-auto bg-white">
+      <div className="relative flex-1 overflow-auto bg-gray-50">
         {isEmpty ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-gray-500">
