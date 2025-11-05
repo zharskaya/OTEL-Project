@@ -13,6 +13,7 @@ import { AddAttributeForm } from '@/components/transformations/add-attribute-for
 import { SubstringAttributeForm } from '@/components/transformations/substring-attribute-form';
 import { RawOTTLForm } from '@/components/transformations/raw-ottl-form';
 import { useTransformations, useTransformationActions } from '@/lib/state/hooks';
+import { useTransformationStore } from '@/lib/state/transformation-store';
 
 interface TreeSectionProps {
   section: TelemetrySection;
@@ -170,7 +171,29 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
         return prev;
       }
       
-      // CRITICAL: Use baseAttributes order directly when there are new items
+      // Check if there's a pre-set order in the store (from cross-section drag)
+      const storedOrder = useTransformationStore.getState().attributeOrder.get(section.id);
+      const keyToId = new Map(baseAttributes.map(a => [a.key, a.id]));
+      
+      if (storedOrder && added.length > 0) {
+        // Use stored order to position new attributes
+        const result: string[] = [];
+        for (const key of storedOrder) {
+          const id = keyToId.get(key);
+          if (id && newIdsSet.has(id)) {
+            result.push(id);
+          }
+        }
+        // Add any attributes not in stored order (shouldn't happen, but just in case)
+        for (const id of newIds) {
+          if (!result.includes(id)) {
+            result.push(id);
+          }
+        }
+        return result;
+      }
+      
+      // Default behavior: Use baseAttributes order directly when there are new items
       // This respects the positioning logic in baseAttributes:
       // - Static/OTTL attributes at top
       // - Substring attributes above their source
