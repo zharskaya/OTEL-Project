@@ -359,13 +359,13 @@ export function TreeSection({ section, dropIndicatorId, activeId, pendingDeletio
                 strategy={verticalListSortingStrategy}
               >
                 <div>
-                  {allAttributes.map((attribute) => {
+                  {allAttributes.map((attribute, index) => {
                     const compositeId = `${section.id}:${attribute.id}`;
                     const isDeleted = deletedAttributePaths.has(attribute.path);
                     const isPendingDeletion = pendingDeletionId === compositeId;
                     
                     return (
-                      <React.Fragment key={attribute.id}>
+                      <React.Fragment key={`${attribute.id}-${attribute.path}-${index}`}>
                         {/* Show substring form right above the source attribute */}
                         {showSubstringForm && substringParams && substringParams.sourceAttributePath === attribute.path && (
                           <SubstringAttributeForm

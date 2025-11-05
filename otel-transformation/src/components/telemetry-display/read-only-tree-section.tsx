@@ -39,9 +39,9 @@ export function ReadOnlyTreeSection({ section }: ReadOnlyTreeSectionProps) {
             </div>
           ) : (
             <div>
-              {section.attributes.map((attribute) => (
+              {section.attributes.map((attribute, index) => (
                 <ReadOnlyAttributeRow
-                  key={attribute.id}
+                  key={`${attribute.id}-${attribute.path}-${index}`}
                   attribute={attribute}
                 />
               ))}
