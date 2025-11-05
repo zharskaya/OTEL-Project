@@ -13,7 +13,7 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { TelemetryTree as TelemetryTreeType } from '@/types/telemetry-types';
+import { TelemetryTree as TelemetryTreeType, DisplayAttribute } from '@/types/telemetry-types';
 import { TreeSection } from './tree-section';
 import { AttributeRow } from './attribute-row';
 import { useTransformations, useTransformationActions } from '@/lib/state/hooks';
@@ -26,9 +26,10 @@ interface TelemetryTreeProps {
 export function TelemetryTree({ tree }: TelemetryTreeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropIndicatorId, setDropIndicatorId] = useState<string | null>(null);
+  const [sectionOrders, setSectionOrders] = useState<Record<string, string[]>>({});
   
   const transformations = useTransformations();
-  const { addTransformation } = useTransformationActions();
+  const { addTransformation, setAttributeOrder } = useTransformationActions();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -66,6 +67,13 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
     setDropIndicatorId(over ? (over.id as string) : null);
   };
 
+  const handleVisualOrderChange = (sectionId: string, order: string[]) => {
+    setSectionOrders(prev => ({
+      ...prev,
+      [sectionId]: order,
+    }));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     setDropIndicatorId(null);
     setActiveId(null);
@@ -93,6 +101,9 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
       const draggedAttr = sourceSection.attributes.find(a => a.id === activeInfo.attributeId);
       if (!draggedAttr) return;
       
+      // Find the drop target attribute in destination section
+      const dropTargetAttr = destSection.attributes.find(a => a.id === overInfo.attributeId);
+      
       // Check if the attribute is already deleted - deleted attributes cannot be moved between sections
       const isDeleted = transformations.some(
         t => t.type === TransformationType.DELETE &&
@@ -104,6 +115,20 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
         // Don't allow cross-section drag for deleted attributes
         return;
       }
+      
+      // Get current order of destination section attributes
+      const destSectionOrder = sectionOrders[overInfo.sectionId] || destSection.attributes.map(a => a.key);
+      
+      // Find the index where we should insert
+      let insertIndex = 0;
+      if (dropTargetAttr) {
+        insertIndex = destSectionOrder.indexOf(dropTargetAttr.key);
+        if (insertIndex === -1) insertIndex = 0;
+      }
+      
+      // Create new order with the dragged attribute inserted at the drop position
+      const newOrder = [...destSectionOrder];
+      newOrder.splice(insertIndex, 0, draggedAttr.key);
       
       // Create DELETE transformation in source section
       addTransformation({
@@ -135,6 +160,9 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
           value: draggedAttr.value,
         },
       });
+      
+      // Update the visual order to place the attribute at the drop position
+      setAttributeOrder(overInfo.sectionId, newOrder);
     }
     // If same section, let the TreeSection handle it (reordering)
   };
@@ -154,6 +182,7 @@ export function TelemetryTree({ tree }: TelemetryTreeProps) {
             section={section}
             dropIndicatorId={dropIndicatorId}
             activeId={activeId}
+            onVisualOrderChange={handleVisualOrderChange}
           />
         ))}
       </div>

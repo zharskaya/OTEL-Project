@@ -18,9 +18,10 @@ interface TreeSectionProps {
   section: TelemetrySection;
   dropIndicatorId: string | null;
   activeId: string | null;
+  onVisualOrderChange?: (sectionId: string, order: string[]) => void;
 }
 
-export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionProps) {
+export function TreeSection({ section, dropIndicatorId, activeId, onVisualOrderChange }: TreeSectionProps) {
   const [isExpanded, setIsExpanded] = useState(section.expanded);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showOTTLForm, setShowOTTLForm] = useState(false);
@@ -195,9 +196,14 @@ export function TreeSection({ section, dropIndicatorId, activeId }: TreeSectionP
       const keyOrder = result.map(id => idToKey.get(id)).filter((k): k is string => k !== undefined);
       setAttributeOrder(section.id, keyOrder);
       
+      // Notify parent of order change
+      if (onVisualOrderChange) {
+        onVisualOrderChange(section.id, keyOrder);
+      }
+      
       return result;
     });
-  }, [baseAttributes, section.id, setAttributeOrder]);
+  }, [baseAttributes, section.id, setAttributeOrder, onVisualOrderChange]);
   
   // Sort attributes by visual order
   const allAttributes = React.useMemo(() => {
