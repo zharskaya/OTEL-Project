@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, Replace, KeyRound } from 'lucide-react';
+import { Trash2, Undo2, GripVertical, SquareTerminal, Check, X, TextSelect, KeyRound } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DisplayAttribute, ValueType } from '@/types/telemetry-types';
@@ -40,6 +40,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   const [hoverSelection, setHoverSelection] = useState<TextSelection | null>(null);
   const [selectorPosition, setSelectorPosition] = useState({ x: 0, y: 0 });
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isActionHovered, setIsActionHovered] = useState(false);
   const [isEditingOTTL, setIsEditingOTTL] = useState(false);
   const [ottlStatement, setOttlStatement] = useState('');
   const valueContainerRef = useRef<HTMLDivElement>(null);
@@ -484,7 +485,8 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   const isValueInteractive = !isDeleted && !isMasked && !isRenamed;
   const hasActiveSelection = !!activeSelection;
   const shouldShowMaskSelector = hasActiveSelection && isValueInteractive;
-  const shouldShowValueTooltip = isValueHovered && !hasActiveSelection && isValueInteractive;
+  const shouldShowValueTooltip =
+    isValueHovered && !hasActiveSelection && isValueInteractive && !isActionHovered;
 
   const openSelectionTooltip = () => {
     if (!isValueInteractive) {
@@ -512,14 +514,25 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
       >
         {/* Drag handle - positioned absolutely on the left, vertically centered, shown on hover */}
         {isHovered && (
-          <div 
-            {...(isDraggable ? sortableAttributes : {})}
-            {...(isDraggable ? listeners : {})}
-            className={`absolute top-1/2 -translate-y-1/2 text-gray-600 ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
-            style={{ left: `${4 + attribute.depth * 16}px` }}
-          >
-            <GripVertical className="h-4 w-4" />
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  {...(isDraggable ? sortableAttributes : {})}
+                  {...(isDraggable ? listeners : {})}
+                  className={`absolute top-1/2 -translate-y-1/2 text-gray-600 ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                  style={{ left: `${4 + attribute.depth * 16}px` }}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </div>
+              </TooltipTrigger>
+              {isDraggable && (
+                <TooltipContent>
+                  <p>Drag to move</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         )}
 
         {/* For raw OTTL, merge columns and show full statement */}
@@ -573,25 +586,49 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               </div>
               {/* Buttons (Undo for added/deleted attributes) for OTTL */}
               {isHovered && (
-                <div className="absolute right-0">
+                <div
+                  className="absolute right-0"
+                  onMouseEnter={() => setIsActionHovered(true)}
+                  onMouseLeave={() => setIsActionHovered(false)}
+                  onPointerEnter={() => setIsActionHovered(true)}
+                  onPointerLeave={() => setIsActionHovered(false)}
+                >
                   {isAdded || isDeleted ? (
-                    <button
-                      onClick={handleUndo}
-                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                      aria-label="Undo"
-                      title="Undo"
-                    >
-                      <Undo2 className="h-4 w-4" />
-                    </button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={handleUndo}
+                            className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                            aria-label="Delete attribute"
+                            title="Delete attribute"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete attribute</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ) : (
-                    <button
-                      onClick={handleDelete}
-                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
-                      aria-label="Delete"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={handleDelete}
+                            className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                            aria-label="Delete attribute"
+                            title="Delete attribute"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete attribute</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               )}
@@ -728,7 +765,13 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
 
         {/* Action buttons - positioned absolutely on the right */}
         {isHovered && !isRenaming && !shouldShowMaskSelector && (
-          <div className="absolute right-0 flex items-center gap-1">
+          <div
+            className="absolute right-0 flex items-center gap-1"
+            onMouseEnter={() => setIsActionHovered(true)}
+            onMouseLeave={() => setIsActionHovered(false)}
+            onPointerEnter={() => setIsActionHovered(true)}
+            onPointerLeave={() => setIsActionHovered(false)}
+          >
             {!hasAnyModification && (
               <TooltipProvider>
                 <Tooltip>
@@ -742,7 +785,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                       aria-label="Select value to transform"
                       title="Select value to transform"
                     >
-                      <Replace className="h-4 w-4" />
+                      <TextSelect className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -784,14 +827,23 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                 <Undo2 className="h-4 w-4" />
               </button>
             ) : (
-              <button
-                onClick={handleDelete}
-                className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
-                aria-label="Delete attribute"
-                title="Delete"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleDelete}
+                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                      aria-label="Delete attribute"
+                      title="Delete attribute"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete attribute</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         )}
