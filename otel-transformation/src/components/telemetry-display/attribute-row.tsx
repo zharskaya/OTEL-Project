@@ -601,7 +601,6 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                             onClick={handleUndo}
                             className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                             aria-label="Delete attribute"
-                            title="Delete attribute"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -619,7 +618,6 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                             onClick={handleDelete}
                             className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                             aria-label="Delete attribute"
-                            title="Delete attribute"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -783,7 +781,6 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                       onMouseEnter={handleValueMouseEnter}
                       className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
                       aria-label="Select value to transform"
-                      title="Select value to transform"
                     >
                       <TextSelect className="h-4 w-4" />
                     </button>
@@ -806,7 +803,6 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                       }}
                       className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
                       aria-label="Rename key"
-                      title="Rename key"
                     >
                       <KeyRound className="h-4 w-4" />
                     </button>
@@ -818,14 +814,22 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
               </TooltipProvider>
             )}
             {(isDeleted || isMasked || isRenamed || isAdded) ? (
-              <button
-                onClick={handleUndo}
-                className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                aria-label="Undo"
-                title="Undo"
-              >
-                <Undo2 className="h-4 w-4" />
-              </button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleUndo}
+                      className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      aria-label="Undo"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Undo</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <TooltipProvider>
                 <Tooltip>
@@ -834,7 +838,6 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                       onClick={handleDelete}
                       className="rounded-md p-1.5 bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                       aria-label="Delete attribute"
-                      title="Delete attribute"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
