@@ -103,7 +103,7 @@ export function AddAttributeForm({
 
   return (
     <div
-      className="flex items-center gap-1 border-b border-gray-100 bg-gray-200 px-4 py-2"
+      className="flex items-center gap-1 bg-gray-300 px-4 py-2"
       onClick={handleClickOutside}
     >
       <input

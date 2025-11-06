@@ -24,8 +24,8 @@ export function ReadOnlyAttributeRow({ attribute }: ReadOnlyAttributeRowProps) {
   );
 
   const getBackgroundClass = () => {
-    if (isAdded) return 'bg-green-50';
-    if (isModified) return 'bg-blue-50';
+    if (isAdded) return 'bg-green-200/30';
+    if (isModified) return 'bg-blue-200/30';
     return '';
   };
 

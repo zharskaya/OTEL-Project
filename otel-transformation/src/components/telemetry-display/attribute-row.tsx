@@ -485,6 +485,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   const isValueInteractive = !isDeleted && !isMasked && !isRenamed;
   const hasActiveSelection = !!activeSelection;
   const shouldShowMaskSelector = hasActiveSelection && isValueInteractive;
+  const isRowHoverActive = isHovered || shouldShowMaskSelector;
   const shouldShowValueTooltip =
     isValueHovered && !hasActiveSelection && isValueInteractive && !isActionHovered;
 
@@ -507,7 +508,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
       <div
         ref={setNodeRef}
         style={style}
-        className={`relative flex items-center py-1.5 mb-0.5 transition-colors hover:bg-gray-200 leading-none ${getRowBackgroundClass()}`}
+        className={`relative flex items-center py-1.5 mb-0.5 transition-colors hover:bg-gray-200 leading-none ${getRowBackgroundClass()} ${isRowHoverActive ? 'bg-gray-200' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={handleRowPointerLeave}
         onPointerLeave={handleRowPointerLeave}
@@ -664,12 +665,12 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                 <TooltipTrigger asChild>
                   <span
                     className={`font-mono text-xs leading-none ${isDeleted ? 'text-gray-400 line-through cursor-default' : 'text-gray-900 cursor-pointer'}`}
-                    onClick={() => !isDeleted && !isMasked && setIsRenaming(true)}
+                    onClick={() => !isDeleted && setIsRenaming(true)}
                   >
                     {attribute.key}
                   </span>
                 </TooltipTrigger>
-                {isHovered && !isDeleted && !isMasked && (
+                {isHovered && !isDeleted && (
                   <TooltipContent>
                     <p>Click to rename</p>
                   </TooltipContent>
@@ -797,7 +798,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => {
-                        if (!isDeleted && !isMasked) {
+                    if (!isDeleted) {
                           setIsRenaming(true);
                         }
                       }}

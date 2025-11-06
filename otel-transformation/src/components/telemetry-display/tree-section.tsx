@@ -348,7 +348,7 @@ export function TreeSection({ section, dropIndicatorId, activeId, pendingDeletio
           )}
 
           {/* Attributes */}
-          <div className="border-t border-gray-100">
+          <div>
             {allAttributes.length === 0 ? (
               <div className="px-4 py-3 text-sm text-gray-500 leading-tight">
                 No attributes

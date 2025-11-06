@@ -70,7 +70,7 @@ export function RawOTTLForm({ sectionId, onCancel, onSave }: RawOTTLFormProps) {
 
   return (
     <div
-      className="flex items-center gap-1 border-b border-gray-100 bg-gray-200 px-4 py-2"
+      className="flex items-center gap-1 bg-gray-300 px-4 py-2"
       onClick={handleClickOutside}
     >
       <SquareTerminal className="h-4 w-4 text-gray-600 flex-shrink-0" />

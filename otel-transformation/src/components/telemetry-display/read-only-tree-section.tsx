@@ -32,7 +32,7 @@ export function ReadOnlyTreeSection({ section }: ReadOnlyTreeSectionProps) {
 
       {/* Section Content */}
       {isExpanded && (
-        <div className="border-t border-gray-200">
+        <div>
           {section.attributes.length === 0 ? (
             <div className="px-4 py-3 text-sm text-gray-500 leading-tight">
               No attributes
