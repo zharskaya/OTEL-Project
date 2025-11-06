@@ -10,7 +10,7 @@ interface KeyboardHint {
 
 export function KeyboardHintsBar() {
   const hints: KeyboardHint[] = [
-    { keys: ['⌘/Ctrl', 'Enter'], description: 'Run transformations' }
+    { keys: ['⌘/Ctrl', 'Enter'], description: 'Preview transformed data' }
   ];
 
   return (
