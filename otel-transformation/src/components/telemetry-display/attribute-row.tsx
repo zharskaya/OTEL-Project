@@ -148,7 +148,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   React.useEffect(() => {
-    if (!selection || isDeleted || isMasked || isRenamed) {
+    if (!selection || isDeleted || isMasked) {
       return;
     }
 
@@ -288,7 +288,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   const handleValueMouseEnter = () => {
-    if (isDeleted || isMasked || isRenamed) {
+    if (isDeleted || isMasked) {
       setIsValueHovered(true);
       return;
     }
@@ -309,7 +309,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   const handleValueKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (isDeleted || isMasked || isRenamed) {
+    if (isDeleted || isMasked) {
       return;
     }
 
@@ -482,9 +482,10 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
   };
 
   const activeSelection = selection ?? hoverSelection;
-  const isValueInteractive = !isDeleted && !isMasked && !isRenamed;
+  const isValueInteractive = !isDeleted && !isMasked;
   const hasActiveSelection = !!activeSelection;
   const shouldShowMaskSelector = hasActiveSelection && isValueInteractive;
+  const maskAndRename = isMasked && isRenamed && maskTransformation && renameTransformation;
   const isRowHoverActive = isHovered || shouldShowMaskSelector;
   const shouldShowValueTooltip =
     isValueHovered && !hasActiveSelection && isValueInteractive && !isActionHovered;
@@ -760,7 +761,35 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
         </div>
 
         {/* Modification label - always visible on the right */}
-        {!shouldShowMaskSelector && getModificationLabel()}
+        {!shouldShowMaskSelector && (
+          maskAndRename ? (
+            <div className="flex flex-col items-end gap-1 text-right">
+              <div>{(() => {
+                const params = maskTransformation?.params as any;
+                if (!params) return null;
+                const rawValue = attribute.value.replace(/^"|"$/g, '');
+                const isEntireString = params.maskStart === 0 && (params.maskEnd === 'end' || params.maskEnd === rawValue.length);
+                const range = isEntireString
+                  ? '(Entire str)'
+                  : params.maskEnd === 'end'
+                    ? `(${params.maskStart}..end)`
+                    : `(${params.maskStart}..${params.maskEnd})`;
+                return (
+                  <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
+                    MASK {range}
+                  </span>
+                );
+              })()}</div>
+              <div>
+                <span className="rounded px-1.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800">
+                  RENAME KEY
+                </span>
+              </div>
+            </div>
+          ) : (
+            getModificationLabel()
+          )
+        )}
 
         {/* Action buttons - positioned absolutely on the right */}
         {isHovered && !isRenaming && !shouldShowMaskSelector && (
@@ -771,7 +800,7 @@ export function AttributeRow({ attribute, isDraggable = false, showDropIndicator
             onPointerEnter={() => setIsActionHovered(true)}
             onPointerLeave={() => setIsActionHovered(false)}
           >
-            {!hasAnyModification && (
+            {(!hasAnyModification || (isRenamed && !isDeleted && !isMasked)) && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
